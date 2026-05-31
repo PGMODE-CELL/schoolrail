@@ -946,3 +946,228 @@ class BulkNotificationCreate(BaseModel):
     notification_type: str = "broadcast"
     priority: str = "normal"
     data: Optional[dict] = None
+
+
+# =============================================================================
+# RIDERSHIP SCHEMAS
+# =============================================================================
+
+class RidershipCheckIn(BaseModel):
+    student_id: int
+    vehicle_id: int
+    trip_id: Optional[int] = None
+    stop_id: Optional[int] = None
+    method: str = "manual"  # rfid, manual, qr
+    rfid_card_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    photo_url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class RidershipCheckOut(BaseModel):
+    student_id: int
+    vehicle_id: int
+    trip_id: Optional[int] = None
+    stop_id: Optional[int] = None
+    method: str = "manual"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class RidershipLogResponse(BaseModel):
+    id: int
+    student_id: int
+    vehicle_id: int
+    event: str
+    method: str
+    timestamp: datetime
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    student_name: Optional[str] = None
+    stop_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RidershipStats(BaseModel):
+    total_today: int = 0
+    checked_in: int = 0
+    checked_out: int = 0
+    on_bus: int = 0
+
+
+# =============================================================================
+# GEOFENCE SCHEMAS
+# =============================================================================
+
+class GeofenceZoneCreate(BaseModel):
+    school_id: int
+    name: str
+    zone_type: str = "stop"
+    latitude: float
+    longitude: float
+    radius_meters: int = 100
+    stop_id: Optional[int] = None
+    route_id: Optional[int] = None
+    notify_parents: bool = True
+    notify_school: bool = True
+
+
+class GeofenceZoneResponse(BaseModel):
+    id: int
+    school_id: int
+    name: str
+    zone_type: str
+    latitude: float
+    longitude: float
+    radius_meters: int
+    stop_id: Optional[int] = None
+    route_id: Optional[int] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class GeofenceCheckRequest(BaseModel):
+    vehicle_id: int
+    latitude: float
+    longitude: float
+    trip_id: Optional[int] = None
+
+
+class GeofenceEvent(BaseModel):
+    zone_id: int
+    zone_name: str
+    zone_type: str
+    vehicle_id: int
+    event: str  # entered, exited
+    distance_meters: float
+
+
+# =============================================================================
+# FIELD TRIP SCHEMAS
+# =============================================================================
+
+class FieldTripCreate(BaseModel):
+    school_id: int
+    vehicle_id: Optional[int] = None
+    driver_id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    destination: str
+    destination_latitude: Optional[float] = None
+    destination_longitude: Optional[float] = None
+    departure_datetime: datetime
+    return_datetime: datetime
+    supervisor_name: Optional[str] = None
+    supervisor_phone: Optional[str] = None
+    permission_slip_required: bool = True
+    cost_per_student: float = 0
+    notes: Optional[str] = None
+    student_ids: Optional[List[int]] = None
+
+
+class FieldTripUpdate(BaseModel):
+    vehicle_id: Optional[int] = None
+    driver_id: Optional[int] = None
+    title: Optional[str] = None
+    destination: Optional[str] = None
+    departure_datetime: Optional[datetime] = None
+    return_datetime: Optional[datetime] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class FieldTripResponse(BaseModel):
+    id: int
+    school_id: int
+    title: str
+    destination: str
+    departure_datetime: datetime
+    return_datetime: datetime
+    status: str
+    total_students: int
+    checked_in_count: int
+    checked_out_count: int
+    vehicle_id: Optional[int] = None
+    driver_id: Optional[int] = None
+    supervisor_name: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FieldTripStudentAdd(BaseModel):
+    student_ids: List[int]
+
+
+class FieldTripStudentResponse(BaseModel):
+    id: int
+    student_id: int
+    student_name: Optional[str] = None
+    class_name: Optional[str] = None
+    permission_slip_received: bool
+    checked_in: bool
+    checked_out: bool
+
+    class Config:
+        from_attributes = True
+
+
+# =============================================================================
+# MAINTENANCE SCHEDULE SCHEMAS
+# =============================================================================
+
+class MaintenanceScheduleCreate(BaseModel):
+    vehicle_id: int
+    task_name: str
+    description: Optional[str] = None
+    maintenance_type: str = "service"
+    interval_km: int = 5000
+    interval_days: int = 90
+    last_done_km: float = 0
+    estimated_cost: float = 0
+    assigned_to: Optional[str] = None
+
+
+class MaintenanceScheduleResponse(BaseModel):
+    id: int
+    vehicle_id: int
+    task_name: str
+    maintenance_type: str
+    interval_km: int
+    interval_days: int
+    last_done_km: float
+    next_due_km: Optional[float] = None
+    next_due_date: Optional[datetime] = None
+    estimated_cost: float
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+# =============================================================================
+# TRIP STOP LOG SCHEMAS
+# =============================================================================
+
+class TripStopLogResponse(BaseModel):
+    id: int
+    trip_id: int
+    stop_id: int
+    stop_name: Optional[str] = None
+    stop_order: int
+    arrived_at: Optional[datetime] = None
+    departed_at: Optional[datetime] = None
+    students_boarded: int
+    students_alighted: int
+    delay_minutes: int
+    status: str
+
+    class Config:
+        from_attributes = True

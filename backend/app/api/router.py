@@ -19,6 +19,10 @@ from app.api.v1.endpoints.reports import router as reports_router
 from app.api.v1.endpoints.parent import router as parent_router
 from app.api.v1.endpoints.driver import router as driver_router
 from app.api.v1.endpoints.websocket import router as websocket_router
+from app.api.v1.endpoints.features import (
+    ridership_router, geofence_router, field_trip_router,
+    maintenance_router, trip_stops_router, router as features_router
+)
 
 api_router = APIRouter()
 
@@ -43,6 +47,13 @@ api_router.include_router(reports_router)
 api_router.include_router(parent_router)
 api_router.include_router(driver_router)
 api_router.include_router(websocket_router)
+
+api_router.include_router(ridership_router)
+api_router.include_router(geofence_router)
+api_router.include_router(field_trip_router)
+api_router.include_router(maintenance_router)
+api_router.include_router(trip_stops_router)
+api_router.include_router(features_router)
 
 api_router.include_router(extras.router, prefix="/extras", tags=["Extras"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])

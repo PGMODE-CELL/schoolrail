@@ -881,3 +881,194 @@ class Notification(Base):
     delivery_status = Column(String(20))  # pending, sent, failed
     
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# =============================================================================
+# RIDERSHIP LOG MODEL (RFID Check-in/out)
+# =============================================================================
+
+class RidershipLog(Base):
+    """Student bus check-in/out tracking (competitor's paid add-on)"""
+    __tablename__ = "ridership_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True)
+    stop_id = Column(Integer, ForeignKey("stops.id"), nullable=True)
+
+    event = Column(String(10), nullable=False)  # check_in, check_out
+    method = Column(String(20), default="manual")  # rfid, manual, qr
+    rfid_card_id = Column(String(50), nullable=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    photo_url = Column(String(500))
+
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    school = relationship("School")
+    student = relationship("Student")
+    vehicle = relationship("Vehicle")
+    trip = relationship("Trip")
+    stop = relationship("Stop")
+
+
+# =============================================================================
+# GEOFENCE ZONES MODEL
+# =============================================================================
+
+class GeofenceZone(Base):
+    """Geofence zones for stop/school proximity alerts"""
+    __tablename__ = "geofence_zones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False)
+    name = Column(String(200), nullable=False)
+    zone_type = Column(String(20), nullable=False)  # stop, school, custom
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    radius_meters = Column(Integer, nullable=False, default=100)
+    stop_id = Column(Integer, ForeignKey("stops.id"), nullable=True)
+    route_id = Column(Integer, ForeignKey("routes.id"), nullable=True)
+
+    notify_parents = Column(Boolean, default=True)
+    notify_school = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    school = relationship("School")
+    stop = relationship("Stop")
+    route = relationship("Route")
+
+
+# =============================================================================
+# FIELD TRIP MODEL
+# =============================================================================
+
+class FieldTrip(Base):
+    """Field trip / excursion management"""
+    __tablename__ = "field_trips"
+
+    id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=True)
+
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    destination = Column(String(200), nullable=False)
+    destination_latitude = Column(Float)
+    destination_longitude = Column(Float)
+
+    departure_datetime = Column(DateTime, nullable=False)
+    return_datetime = Column(DateTime, nullable=False)
+    actual_departure = Column(DateTime)
+    actual_return = Column(DateTime)
+
+    total_students = Column(Integer, default=0)
+    checked_in_count = Column(Integer, default=0)
+    checked_out_count = Column(Integer, default=0)
+    status = Column(String(20), default="scheduled")  # scheduled, ongoing, completed, cancelled
+
+    supervisor_name = Column(String(200))
+    supervisor_phone = Column(String(20))
+    permission_slip_required = Column(Boolean, default=True)
+    cost_per_student = Column(Float, default=0)
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    school = relationship("School")
+    vehicle = relationship("Vehicle")
+    driver = relationship("Driver")
+    students = relationship("FieldTripStudent", back_populates="field_trip", lazy="dynamic")
+
+
+class FieldTripStudent(Base):
+    """Student enrollment in a field trip"""
+    __tablename__ = "field_trip_students"
+
+    id = Column(Integer, primary_key=True, index=True)
+    field_trip_id = Column(Integer, ForeignKey("field_trips.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+
+    permission_slip_received = Column(Boolean, default=False)
+    checked_in = Column(Boolean, default=False)
+    checked_in_time = Column(DateTime)
+    checked_out = Column(Boolean, default=False)
+    checked_out_time = Column(DateTime)
+
+    emergency_contact = Column(String(20))
+    medical_notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    field_trip = relationship("FieldTrip", back_populates="students")
+    student = relationship("Student")
+
+
+# =============================================================================
+# MAINTENANCE SCHEDULE MODEL (recurring maintenance)
+# =============================================================================
+
+class MaintenanceSchedule(Base):
+    """Scheduled recurring maintenance tasks"""
+    __tablename__ = "maintenance_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+
+    task_name = Column(String(200), nullable=False)
+    description = Column(Text)
+    maintenance_type = Column(String(50), nullable=False)  # oil_change, tire_rotation, inspection, service, other
+    interval_km = Column(Integer, default=5000)
+    interval_days = Column(Integer, default=90)
+
+    last_done_km = Column(Float, default=0)
+    last_done_date = Column(DateTime)
+    next_due_km = Column(Float)
+    next_due_date = Column(DateTime)
+
+    assigned_to = Column(String(200))
+    estimated_cost = Column(Float)
+    is_recurring = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vehicle = relationship("Vehicle")
+
+
+# =============================================================================
+# TRIP STOP LOG (for tracking stop-by-stop progress)
+# =============================================================================
+
+class TripStopLog(Base):
+    """Record when a bus reaches/leaves each stop on a trip"""
+    __tablename__ = "trip_stop_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+    stop_id = Column(Integer, ForeignKey("stops.id"), nullable=False)
+    stop_order = Column(Integer, nullable=False)
+
+    arrived_at = Column(DateTime)
+    departed_at = Column(DateTime)
+    students_boarded = Column(Integer, default=0)
+    students_alighted = Column(Integer, default=0)
+    delay_minutes = Column(Integer, default=0)
+    status = Column(String(20), default="pending")  # pending, arrived, departed, skipped
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    trip = relationship("Trip")
+    stop = relationship("Stop")
