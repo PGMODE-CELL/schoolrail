@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: SchoolRail Security
+    url: https://github.com/schoolrail/schoolrail/security/policy
+    about: Report a security vulnerability

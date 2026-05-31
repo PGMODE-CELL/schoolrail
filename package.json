@@ -1,0 +1,57 @@
+{
+  "name": "schoolrail",
+  "version": "1.0.0",
+  "description": "SchoolRail - Complete School Transport Management System",
+  "author": "SchoolRail Team",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/schoolrail/schoolrail.git"
+  },
+  "bugs": {
+    "url": "https://github.com/schoolrail/schoolrail/issues"
+  },
+  "homepage": "https://github.com/schoolrail/schoolrail#readme",
+  "keywords": ["school", "transportation", "bus-tracking", "gps", "fastapi", "nextjs", "react-native"],
+  "workspaces": [
+    "admin",
+    "parent-app",
+    "driver-app"
+  ],
+  "scripts": {
+    "backend": "cd backend && python main.py",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:dev": "cd backend && uvicorn main:app --reload --port 3001",
+    "admin": "cd admin && npm run dev",
+    "admin:install": "cd admin && npm install",
+    "admin:build": "cd admin && npm run build",
+    "admin:lint": "cd admin && npm run lint",
+    "parent-app": "cd parent-app && expo start",
+    "parent-app:install": "cd parent-app && npm install",
+    "driver-app": "cd driver-app && expo start",
+    "driver-app:install": "cd driver-app && npm install",
+    "install:all": "npm run backend:install && npm run admin:install && npm run parent-app:install && npm run driver-app:install",
+    "dev:all": "concurrently \"npm run backend:dev\" \"npm run admin\"",
+    "dev:backend": "npm run backend",
+    "dev:admin": "npm run admin",
+    "docker:up": "cd docker && docker-compose up -d",
+    "docker:down": "cd docker && docker-compose down",
+    "docker:build": "cd docker && docker-compose build",
+    "test": "cd backend && python -m pytest tests/ -v",
+    "test:watch": "cd backend && python -m pytest tests/ -v --watch",
+    "seed": "cd backend && python seed_data.py",
+    "backup": "cd scripts && python backup.py",
+    "lint": "npm run admin:lint",
+    "typecheck": "cd admin && npx tsc --noEmit",
+    "start": "npm run dev:all",
+    "help": "echo 'SchoolRail - School Transport Management System'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.11"
+  }
+}
