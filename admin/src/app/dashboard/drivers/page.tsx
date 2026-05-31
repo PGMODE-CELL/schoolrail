@@ -2,11 +2,34 @@
 
 import { useState } from 'react';
 import { useDrivers } from '@/hooks/useSchoolRail';
-import { Users, Plus, Search, Filter, Phone, Star, Car, Eye, Edit, MessageCircle } from 'lucide-react';
+import { driversAPI } from '@/lib/api';
+import { Modal } from '@/components/ui/Modal';
+import { FormField } from '@/components/ui/FormField';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Users, Plus, Search, Filter, Phone, Car, Star, Edit, Trash2, Loader2, X } from 'lucide-react';
+
+const initialForm = {
+  first_name: '',
+  last_name: '',
+  phone: '',
+  email: '',
+  license_number: '',
+  license_expiry: '',
+  status: 'active',
+  address: '',
+  city: '',
+  vehicle_id: '',
+};
 
 export default function DriversPage() {
-  const { data: drivers, isLoading, error } = useDrivers();
+  const { data: drivers, isLoading, error, refetch } = useDrivers();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [form, setForm] = useState(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const driverArr = Array.isArray(drivers) ? drivers : [];
 
@@ -32,8 +55,91 @@ export default function DriversPage() {
     }
   };
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  const openAddModal = () => {
+    setEditingItem(null);
+    setForm(initialForm);
+    setShowModal(true);
+  };
+
+  const openEditModal = (driver: any) => {
+    setEditingItem(driver);
+    setForm({
+      first_name: driver.first_name || '',
+      last_name: driver.last_name || '',
+      phone: driver.phone || '',
+      email: driver.email || '',
+      license_number: driver.license_number || '',
+      license_expiry: driver.license_expiry ? driver.license_expiry.slice(0, 10) : '',
+      status: driver.status || 'active',
+      address: driver.address || '',
+      city: driver.city || '',
+      vehicle_id: driver.vehicle_id ? String(driver.vehicle_id) : '',
+    });
+    setShowModal(true);
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...form,
+        vehicle_id: form.vehicle_id ? Number(form.vehicle_id) : null,
+      };
+      if (editingItem) {
+        await driversAPI.update(editingItem.id, payload);
+        showToast('Driver updated successfully', 'success');
+      } else {
+        await driversAPI.create(payload);
+        showToast('Driver created successfully', 'success');
+      }
+      setShowModal(false);
+      setEditingItem(null);
+      setForm(initialForm);
+      refetch();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'An error occurred', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setSubmitting(true);
+    try {
+      await driversAPI.delete(deleteConfirm.id);
+      showToast('Driver deleted successfully', 'success');
+      setDeleteConfirm(null);
+      refetch();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to delete driver', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {toast.show && (
+        <div className={`fixed top-4 right-4 z-[100] px-5 py-3 rounded-xl shadow-xl border text-sm font-medium flex items-center gap-3 transition-all ${
+          toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          <span>{toast.message}</span>
+          <button onClick={() => setToast({ show: false, message: '', type: 'success' })} className="ml-2 opacity-60 hover:opacity-100">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat, index) => (
@@ -61,7 +167,10 @@ export default function DriversPage() {
           <h1 className="text-2xl font-bold text-slate-900">Drivers</h1>
           <p className="text-slate-500 mt-1">Manage your driver fleet and assignments</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
+        <button
+          onClick={openAddModal}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20"
+        >
           <Plus size={20} />
           Add Driver
         </button>
@@ -154,15 +263,19 @@ export default function DriversPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <button className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 transition-colors">
-                <Eye size={18} />
-                View
-              </button>
-              <button className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                <MessageCircle size={18} />
-              </button>
-              <button className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+              <button
+                onClick={() => openEditModal(driver)}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 transition-colors"
+              >
                 <Edit size={18} />
+                Edit
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(driver)}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
+              >
+                <Trash2 size={18} />
+                Delete
               </button>
             </div>
           </div>
@@ -172,6 +285,55 @@ export default function DriversPage() {
         )}
       </div>
       )}
+
+      {/* Add/Edit Modal */}
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingItem(null); setForm(initialForm); }} title={editingItem ? 'Edit Driver' : 'Add Driver'} size="lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="First Name" name="first_name" value={form.first_name} onChange={handleFormChange} required />
+          <FormField label="Last Name" name="last_name" value={form.last_name} onChange={handleFormChange} required />
+          <FormField label="Phone" name="phone" value={form.phone} onChange={handleFormChange} required />
+          <FormField label="Email" name="email" type="email" value={form.email} onChange={handleFormChange} />
+          <FormField label="License Number" name="license_number" value={form.license_number} onChange={handleFormChange} required />
+          <FormField label="License Expiry" name="license_expiry" type="date" value={form.license_expiry} onChange={handleFormChange} />
+          <FormField label="Status" name="status" type="select" value={form.status} onChange={handleFormChange} options={[
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ]} />
+          <FormField label="Vehicle ID" name="vehicle_id" type="number" value={form.vehicle_id} onChange={handleFormChange} placeholder="Optional" />
+          <div className="md:col-span-2">
+            <FormField label="Address" name="address" value={form.address} onChange={handleFormChange} />
+          </div>
+          <FormField label="City" name="city" value={form.city} onChange={handleFormChange} />
+        </div>
+        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => { setShowModal(false); setEditingItem(null); setForm(initialForm); }}
+            className="px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {submitting && <Loader2 size={18} className="animate-spin" />}
+            {editingItem ? 'Update Driver' : 'Add Driver'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDelete}
+        title="Delete Driver"
+        message={`Are you sure you want to delete ${deleteConfirm?.first_name || ''} ${deleteConfirm?.last_name || ''}? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        loading={submitting}
+      />
     </div>
   );
 }
