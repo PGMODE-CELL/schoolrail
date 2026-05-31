@@ -1,0 +1,210 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: api-gateway
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/component: api-gateway
+    spec:
+      serviceAccountName: {{ include "api-gateway.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: kong
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: KONG_DATABASE
+              value: {{ .Values.env.database }}
+            - name: KONG_PROXY_LISTEN
+              value: {{ .Values.env.proxy_listen }}
+            - name: KONG_ADMIN_LISTEN
+              value: {{ .Values.env.admin_listen }}
+            - name: KONG_STATUS_LISTEN
+              value: {{ .Values.env.status_listen }}
+            - name: KONG_NGINX_WORKER_PROCESSES
+              value: {{ .Values.env.nginx_worker_processes }}
+            - name: KONG_LOG_LEVEL
+              value: notice
+            - name: KONG_PLUGINS
+              value: bundled,openid-connect,rate-limiting,request-transformer
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ADMIN_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_CLUSTER_LISTEN
+              value: "0.0.0.0:8005"
+            - name: KONG_CLUSTER_TELEMETRY_LISTEN
+              value: "0.0.0.0:8006"
+            - name: KONG_LUA_SSL_TRUSTED_CERTIFICATE
+              value: system
+            - name: KONG_TRUSTED_IPS
+              value: "0.0.0.0/0,::/0"
+            - name: KONG_REAL_IP_HEADER
+              value: X-Forwarded-For
+            - name: KONG_REAL_IP_RECURSIVE
+              value: "on"
+            - name: AUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: schoolrail-secrets
+                  key: auth-client-secret
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: schoolrail-secrets
+                  key: session-secret
+          ports:
+            - name: proxy
+              containerPort: 8000
+              protocol: TCP
+            - name: proxy-ssl
+              containerPort: 8443
+              protocol: TCP
+            - name: admin
+              containerPort: 8444
+              protocol: TCP
+            - name: metrics
+              containerPort: 8100
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8100
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: 8100
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: proxy
+      port: 80
+      targetPort: 8000
+    - name: proxy-ssl
+      port: 443
+      targetPort: 8443
+    - name: metrics
+      port: 8100
+      targetPort: 8100
+  selector:
+    app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "api-gateway.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "api-gateway.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "api-gateway.name" . }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 8443
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0

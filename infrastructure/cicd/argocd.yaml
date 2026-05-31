@@ -1,0 +1,158 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: schoolrail-applicationset
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/schoolrail/schoolrail.git
+              revision: HEAD
+              directories:
+                - path: infrastructure/helm/*
+          - list:
+              elements:
+                - environment: production
+                  cluster: https://kubernetes.default.svc
+                  namespace: schoolrail-production
+                  valuesFile: values-production.yaml
+                - environment: staging
+                  cluster: https://kubernetes.default.svc
+                  namespace: schoolrail-staging
+                  valuesFile: values-staging.yaml
+  template:
+    metadata:
+      name: "schoolrail-{{.path.basename}}-{{.environment}}"
+      labels:
+        app.kubernetes.io/name: "{{.path.basename}}"
+        app.kubernetes.io/environment: "{{.environment}}"
+        app.kubernetes.io/managed-by: argocd
+    spec:
+      project: schoolrail
+      destination:
+        server: "{{.cluster}}"
+        namespace: "{{.namespace}}"
+      source:
+        repoURL: https://github.com/schoolrail/schoolrail.git
+        targetRevision: HEAD
+        path: "{{.path.path}}"
+        helm:
+          valueFiles:
+            - "{{.valuesFile}}"
+          parameters:
+            - name: global.environment
+              value: "{{.environment}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true
+          - ApplyOutOfSyncOnly=true
+          - RespectIgnoreDifferences=true
+          - AutoCreateSecret=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+        - group: autoscaling
+          kind: HorizontalPodAutoscaler
+          jsonPointers:
+            - /spec/metrics
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: schoolrail-base
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: schoolrail
+  source:
+    repoURL: https://github.com/schoolrail/schoolrail.git
+    targetRevision: HEAD
+    path: infrastructure/helm/base
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: schoolrail-production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: schoolrail
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: SchoolRail Project
+  sourceRepos:
+    - https://github.com/schoolrail/schoolrail.git
+  destinations:
+    - namespace: schoolrail-production
+      server: https://kubernetes.default.svc
+    - namespace: schoolrail-staging
+      server: https://kubernetes.default.svc
+    - namespace: schoolrail-monitoring
+      server: https://kubernetes.default.svc
+    - namespace: schoolrail-workers
+      server: https://kubernetes.default.svc
+    - namespace: vault
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true
+  syncWindows:
+    - kind: allow
+      schedule: "* * * * *"
+      duration: 1h
+      applications:
+        - "*"
+      clusters:
+        - "*"
+      namespaces:
+        - "*"
+  roles:
+    - name: readonly
+      policies:
+        - p, proj:schoolrail:readonly, applications, get, schoolrail/*, allow
+      groups:
+        - schoolrail-readonly
+    - name: admin
+      policies:
+        - p, proj:schoolrail:admin, applications, *, schoolrail/*, allow
+      groups:
+        - schoolrail-admin

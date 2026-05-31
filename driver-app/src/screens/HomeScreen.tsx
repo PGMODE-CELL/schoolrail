@@ -2,40 +2,77 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline } from '../config';
 import { useAuth } from '../context/AuthContext';
 
 export function HomeScreen() {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, isOffline } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  const fetchRoutes = () => {
+  const fetchRoutes = async () => {
     setLoading(true);
     setError('');
-    apiRequest('/routes')
-      .then(d => { if (d?.length) setRoutes(d); setLoading(false); })
-      .catch(() => { setError('Failed to load routes'); setLoading(false); });
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      const cached = await AsyncStorage.getItem('driver_home_routes');
+      if (cached) {
+        setRoutes(JSON.parse(cached));
+        setShowingCached(true);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const d = await apiRequest('/routes');
+      if (d?.length) {
+        setRoutes(d);
+        await AsyncStorage.setItem('driver_home_routes', JSON.stringify(d));
+      }
+    } catch {
+      const cached = await AsyncStorage.getItem('driver_home_routes');
+      if (cached) {
+        setRoutes(JSON.parse(cached));
+        setShowingCached(true);
+      } else {
+        setError('Failed to load routes');
+      }
+    }
+    setLoading(false);
   };
 
   useEffect(() => { fetchRoutes(); }, []);
 
   const todayTrips = routes.filter((r: any) => r.status === 'active' || r.status === 'Active').length;
   const totalStudents = routes.reduce((acc: number, r: any) => acc + (r.student_count || (r.stops ? r.stops.length : 0) || r.students || 0), 0);
+  const totalStops = routes.reduce((acc: number, r: any) => acc + (r.stop_count || (r.stops ? r.stops.length : 0) || 0), 0);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {isOffline || showingCached ? (
+          <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+            <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>
+              {isOffline ? 'You are offline' : 'Showing cached data'}
+            </Text>
+          </View>
+        ) : null}
+
         <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <View style={styles.headerTop}>
             <View>
@@ -58,7 +95,7 @@ export function HomeScreen() {
               <Text style={styles.statLabel}>Students</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statValue}>{routes.reduce((acc: number, r: any) => acc + (r.stop_count || (r.stops ? r.stops.length : 0) || 0), 0)}</Text>
+              <Text style={styles.statValue}>{totalStops}</Text>
               <Text style={styles.statLabel}>Stops</Text>
             </View>
           </View>
@@ -117,19 +154,19 @@ export function HomeScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionsGrid}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Attendance')}>
                 <View style={[styles.actionIcon, { backgroundColor: '#ECFDF5' }]}>
                   <Feather name="check-circle" size={24} color={theme.colors.primary} />
                 </View>
                 <Text style={styles.actionLabel}>Take Attendance</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Routes')}>
                 <View style={[styles.actionIcon, { backgroundColor: '#EEF2FF' }]}>
                   <Feather name="navigation" size={24} color={theme.colors.primary} />
                 </View>
-                <Text style={styles.actionLabel}>Start Trip</Text>
+                <Text style={styles.actionLabel}>View Routes</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Vehicle')}>
                 <View style={[styles.actionIcon, { backgroundColor: '#FEF3C7' }]}>
                   <Feather name="alert-circle" size={24} color={theme.colors.warning} />
                 </View>

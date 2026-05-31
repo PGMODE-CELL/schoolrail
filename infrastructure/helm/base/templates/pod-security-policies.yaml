@@ -1,0 +1,28 @@
+{{- if .Values.podSecurityPolicies.enabled }}
+{{- range .Values.podSecurityPolicies.policies }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ .name }}
+  annotations:
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+spec:
+  privileged: {{ .privileged }}
+  allowPrivilegeEscalation: {{ .allowPrivilegeEscalation }}
+  runAsUser:
+    rule: {{ .runAsUser.rule }}
+  seLinux:
+    rule: {{ .seLinux.rule }}
+  supplementalGroups:
+    rule: {{ .supplementalGroups.rule }}
+    ranges:
+      {{- toYaml .supplementalGroups.ranges | nindent 6 }}
+  fsGroup:
+    rule: {{ .fsGroup.rule }}
+    ranges:
+      {{- toYaml .fsGroup.ranges | nindent 6 }}
+  volumes:
+    {{- toYaml .volumes | nindent 4 }}
+---
+{{- end }}
+{{- end }}

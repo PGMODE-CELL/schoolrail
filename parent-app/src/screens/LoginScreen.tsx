@@ -3,12 +3,10 @@ import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicato
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiLogin, apiRequest } from '../config';
+import { useAuth } from '../context/AuthContext';
 
-interface Props {
-  onLogin: (token: string, user: any) => void;
-}
-
-export function LoginScreen({ onLogin }: Props) {
+export function LoginScreen() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,7 +45,7 @@ export function LoginScreen({ onLogin }: Props) {
       await AsyncStorage.setItem('token', data.access_token);
       const me = await apiRequest('/auth/me');
       await AsyncStorage.setItem('user', JSON.stringify(me));
-      onLogin(data.access_token, me);
+      await login(data.access_token, me);
     } catch (e: any) {
       setError(e.message || 'Login failed');
     }

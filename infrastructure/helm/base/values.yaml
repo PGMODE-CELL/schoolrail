@@ -1,0 +1,138 @@
+global:
+  environment: production
+  awsRegion: us-east-1
+  clusterName: schoolrail-production
+  oidcProviderUrl: ""
+  oidcProviderArn: ""
+
+namespaces:
+  - name: schoolrail-production
+    labels:
+      istio-injection: enabled
+  - name: schoolrail-staging
+    labels:
+      istio-injection: enabled
+  - name: schoolrail-monitoring
+    labels:
+      istio-injection: disabled
+  - name: schoolrail-workers
+    labels:
+      istio-injection: disabled
+
+serviceAccounts:
+  - name: schoolrail-backend
+    namespace: schoolrail-production
+    iamRole: schoolrail-backend
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/schoolrail-backend"
+  - name: schoolrail-workers
+    namespace: schoolrail-workers
+    iamRole: schoolrail-workers
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/schoolrail-workers"
+
+networkPolicies:
+  defaultDeny:
+    enabled: true
+    policies:
+      - name: default-deny-all
+        namespace: schoolrail-production
+        podSelector: {}
+        policyTypes:
+          - Ingress
+          - Egress
+      - name: default-deny-all
+        namespace: schoolrail-workers
+        podSelector: {}
+        policyTypes:
+          - Ingress
+          - Egress
+      - name: default-deny-all
+        namespace: schoolrail-monitoring
+        podSelector: {}
+        policyTypes:
+          - Ingress
+          - Egress
+  allowRules:
+    - name: allow-dns
+      namespace: schoolrail-production
+      podSelector: {}
+      policyTypes:
+        - Egress
+      egress:
+        - to:
+            - namespaceSelector: {}
+          ports:
+            - protocol: UDP
+              port: 53
+            - protocol: TCP
+              port: 53
+    - name: allow-dns
+      namespace: schoolrail-workers
+      podSelector: {}
+      policyTypes:
+        - Egress
+      egress:
+        - to:
+            - namespaceSelector: {}
+          ports:
+            - protocol: UDP
+              port: 53
+            - protocol: TCP
+              port: 53
+    - name: allow-monitoring-scrape
+      namespace: schoolrail-monitoring
+      podSelector: {}
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: schoolrail-monitoring
+          ports:
+            - protocol: TCP
+              port: 9090
+    - name: allow-metrics-ingest
+      namespace: schoolrail-production
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/component: metrics
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: schoolrail-monitoring
+          ports:
+            - protocol: TCP
+              port: 8001
+
+podSecurityPolicies:
+  enabled: true
+  policies:
+    - name: restricted
+      privileged: false
+      allowPrivilegeEscalation: false
+      runAsUser:
+        rule: MustRunAsNonRoot
+      seLinux:
+        rule: RunAsAny
+      supplementalGroups:
+        rule: MustRunAs
+        ranges:
+          - min: 1
+            max: 65535
+      fsGroup:
+        rule: MustRunAs
+        ranges:
+          - min: 1
+            max: 65535
+      volumes:
+        - configMap
+        - emptyDir
+        - projected
+        - secret
+        - downwardAPI
+        - persistentVolumeClaim

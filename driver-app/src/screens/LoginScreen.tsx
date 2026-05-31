@@ -3,14 +3,10 @@ import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicato
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiLogin, apiRequest } from '../config';
+import { useAuth } from '../context/AuthContext';
 
-interface Props {
-  onLogin: (token: string, user: any) => void;
-}
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function LoginScreen({ onLogin }: Props) {
+export function LoginScreen() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +16,7 @@ export function LoginScreen({ onLogin }: Props) {
   const validate = (): boolean => {
     const errs: { email?: string; password?: string } = {};
     if (!email.trim()) errs.email = 'Email is required';
-    else if (!EMAIL_REGEX.test(email.trim())) errs.email = 'Invalid email format';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = 'Invalid email format';
     if (!password) errs.password = 'Password is required';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -35,7 +31,7 @@ export function LoginScreen({ onLogin }: Props) {
       await AsyncStorage.setItem('token', data.access_token);
       const me = await apiRequest('/auth/me');
       await AsyncStorage.setItem('user', JSON.stringify(me));
-      onLogin(data.access_token, me);
+      await login(data.access_token, me);
     } catch (e: any) {
       setError(e.message || 'Login failed');
     }

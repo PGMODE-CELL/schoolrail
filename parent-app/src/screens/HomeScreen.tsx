@@ -3,24 +3,41 @@ import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicat
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline } from '../config';
 import { useAuth } from '../context/AuthContext';
 
 export function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { user } = useAuth();
+  const { user, isOffline } = useAuth();
   const [selectedChild, setSelectedChild] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      const cachedStudents = await AsyncStorage.getItem('home_students');
+      const cachedNotifications = await AsyncStorage.getItem('home_notifications');
+      const cachedAttendance = await AsyncStorage.getItem('home_attendance');
+      if (cachedStudents) setStudents(JSON.parse(cachedStudents));
+      if (cachedNotifications) setNotifications(JSON.parse(cachedNotifications));
+      if (cachedAttendance) setAttendance(JSON.parse(cachedAttendance));
+      setShowingCached(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       const [s, n] = await Promise.all([
         apiRequest('/students/'),
@@ -28,15 +45,32 @@ export function HomeScreen() {
       ]);
       if (Array.isArray(s)) {
         setStudents(s);
-        if (s.length > 0) setSelectedChild(s[0]);
+        await AsyncStorage.setItem('home_students', JSON.stringify(s));
+        if (s.length > 0 && !selectedChild) setSelectedChild(s[0]);
       }
-      if (Array.isArray(n)) setNotifications(n);
+      if (Array.isArray(n)) {
+        setNotifications(n);
+        await AsyncStorage.setItem('home_notifications', JSON.stringify(n));
+      }
       try {
         const d = await apiRequest('/attendance/daily?attendance_date=' + new Date().toISOString().slice(0,10));
-        if (Array.isArray(d)) setAttendance(d);
+        if (Array.isArray(d)) {
+          setAttendance(d);
+          await AsyncStorage.setItem('home_attendance', JSON.stringify(d));
+        }
       } catch {}
     } catch (e: any) {
-      setError(e.message || 'Failed to load dashboard data');
+      const cachedStudents = await AsyncStorage.getItem('home_students');
+      const cachedNotifications = await AsyncStorage.getItem('home_notifications');
+      const cachedAttendance = await AsyncStorage.getItem('home_attendance');
+      if (cachedStudents || cachedNotifications || cachedAttendance) {
+        if (cachedStudents) setStudents(JSON.parse(cachedStudents));
+        if (cachedNotifications) setNotifications(JSON.parse(cachedNotifications));
+        if (cachedAttendance) setAttendance(JSON.parse(cachedAttendance));
+        setShowingCached(true);
+      } else {
+        setError(e.message || 'Failed to load dashboard data');
+      }
     }
     setLoading(false);
   }, []);
@@ -50,7 +84,7 @@ export function HomeScreen() {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>Welcome back!</Text>
-              <Text style={styles.userName}>{user?.full_name || ''}</Text>
+              <Text style={styles.userName}>{user?.full_name}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -61,14 +95,14 @@ export function HomeScreen() {
     );
   }
 
-  if (error) {
+  if (error && !showingCached) {
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>Welcome back!</Text>
-              <Text style={styles.userName}>{user?.full_name || ''}</Text>
+              <Text style={styles.userName}>{user?.full_name}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -108,11 +142,19 @@ export function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {isOffline || showingCached ? (
+          <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+            <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>
+              {isOffline ? 'You are offline' : 'Showing cached data'}
+            </Text>
+          </View>
+        ) : null}
+
         <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>Welcome back!</Text>
-              <Text style={styles.userName}>{user?.full_name || ''}</Text>
+              <Text style={styles.userName}>{user?.full_name}</Text>
             </View>
             <TouchableOpacity style={styles.notificationBtn}>
               <Feather name="bell" size={24} color="white" />

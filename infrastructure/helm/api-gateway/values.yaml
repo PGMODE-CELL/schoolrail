@@ -1,0 +1,134 @@
+replicaCount: 3
+
+image:
+  repository: kong
+  tag: "3.7"
+  pullPolicy: IfNotPresent
+
+kong:
+  enabled: true
+
+ingressController:
+  enabled: true
+  installCRDs: false
+
+env:
+  prefix: /kong_prefix/
+  database: "off"
+  proxy_listen: "0.0.0.0:8000 http2, 0.0.0.0:8443 http2 ssl"
+  admin_listen: "0.0.0.0:8444 http2 ssl"
+  status_listen: "0.0.0.0:8100"
+  nginx_worker_processes: "auto"
+  nginx_http_client_max_body_size: "10m"
+  nginx_proxy_read_timeout: "30s"
+  nginx_proxy_connect_timeout: "10s"
+  nginx_proxy_send_timeout: "30s"
+
+proxy:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:123456789012:certificate/xxxxx
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  https:
+    enabled: true
+    servicePort: 443
+    containerPort: 8443
+
+admin:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: false
+  tls:
+    enabled: true
+    servicePort: 8444
+    containerPort: 8444
+
+enterprise:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8100"
+
+plugins:
+  config:
+    rate_limiting:
+      name: rate-limiting
+      enabled: true
+      config:
+        minute: 1000
+        hour: 50000
+        policy: local
+        fault_tolerant: true
+        hide_client_headers: false
+        redis_host: redis://schoolrail-redis:6379
+        redis_database: 0
+        redis_timeout: 2000
+    auth:
+      name: openid-connect
+      enabled: true
+      config:
+        issuer: https://auth.schoolrail.app/auth/realms/schoolrail
+        client_id: kong
+        client_secret: ${AUTH_CLIENT_SECRET}
+        auth_methods:
+          - authorization_code
+          - bearer
+          - session
+        redirect_uri: https://api.schoolrail.app/auth/callback
+        session_secret: ${SESSION_SECRET}
+        bearer_token_param_type:
+          - header
+          - query
+          - body
+        scopes:
+          - openid
+          - profile
+          - email
+          - schoolrail-api
+    tenant_resolution:
+      name: request-transformer
+      enabled: true
+      config:
+        add:
+          headers:
+            - X-Tenant-Id:$(uri_captures[1])
+        remove:
+          headers: []
+      protocols:
+        - http
+        - https
+
+customPlugins:
+  enabled: false
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/schoolrail-kong

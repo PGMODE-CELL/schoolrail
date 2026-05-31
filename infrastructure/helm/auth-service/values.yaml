@@ -1,0 +1,117 @@
+replicaCount: 2
+
+image:
+  repository: schoolrail/auth-service
+  tag: latest
+  pullPolicy: Always
+
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+  master:
+    persistence:
+      size: 1Gi
+
+config:
+  appName: SchoolRail Auth Service
+  debug: false
+  allowedHosts: "api.schoolrail.app,schoolrail.app"
+  corsOrigins: "https://admin.schoolrail.app,https://schoolrail.app"
+  accessTokenExpireMinutes: 1440
+  refreshTokenExpireMinutes: 10080
+  mfaTokenExpireMinutes: 5
+  passwordResetTokenExpireMinutes: 30
+  maxLoginAttempts: 5
+  loginLockoutMinutes: 15
+  sessionRedisDb: 0
+  cacheRedisDb: 1
+  rateLimitRequestsPerMinute: 60
+
+externalSecrets:
+  databaseUrl:
+    name: database-url
+    key: auth-database-url
+  secretKey:
+    name: secret-key
+    key: auth-secret-key
+  redisUrl:
+    name: redis-url
+    key: auth-redis-url
+  smtpHost:
+    name: smtp-credentials
+    key: host
+  smtpPort:
+    name: smtp-credentials
+    key: port
+  smtpUser:
+    name: smtp-credentials
+    key: user
+  smtpPassword:
+    name: smtp-credentials
+    key: password
+  twilioAccountSid:
+    name: twilio-credentials
+    key: account-sid
+  twilioAuthToken:
+    name: twilio-credentials
+    key: auth-token
+  twilioPhoneNumber:
+    name: twilio-credentials
+    key: phone-number
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+  metricsPort: 8001
+
+ingress:
+  enabled: true
+  className: kong
+  annotations:
+    konghq.com/strip-path: "true"
+    konghq.com/plugins: auth-rate-limit
+  hosts:
+    - host: api.schoolrail.app
+      paths:
+        - /api/v1/auth
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8001"
+  sidecar.istio.io/inject: "true"

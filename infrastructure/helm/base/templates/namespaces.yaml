@@ -1,0 +1,11 @@
+{{- range .Values.namespaces }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- toYaml .labels | nindent 4 }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+    app.kubernetes.io/environment: {{ $.Values.global.environment }}
+---
+{{- end }}

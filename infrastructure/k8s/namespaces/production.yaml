@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schoolrail-production
+  labels:
+    name: schoolrail-production
+    environment: production
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schoolrail-monitoring
+  labels:
+    name: schoolrail-monitoring
+    environment: production
+    istio-injection: disabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schoolrail-workers
+  labels:
+    name: schoolrail-workers
+    environment: production
+    istio-injection: disabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schoolrail-staging
+  labels:
+    name: schoolrail-staging
+    environment: staging
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schoolrail-cicd
+  labels:
+    name: schoolrail-cicd
+    environment: cicd
+    istio-injection: disabled

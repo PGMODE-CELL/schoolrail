@@ -1,30 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline, syncEngine } from '../config';
 
 export function VehicleScreen() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
+  const [reportingIssue, setReportingIssue] = useState(false);
+  const [issueText, setIssueText] = useState('');
 
-  const fetchVehicle = () => {
+  const fetchVehicle = async () => {
     setLoading(true);
     setError('');
-    apiRequest('/vehicles')
-      .then(d => { if (d?.length) setVehicle(d[0]); else if (d?.id) setVehicle(d); setLoading(false); })
-      .catch(() => { setError('Failed to load vehicle'); setLoading(false); });
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      const cached = await AsyncStorage.getItem('driver_vehicle');
+      if (cached) {
+        setVehicle(JSON.parse(cached));
+        setShowingCached(true);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const d = await apiRequest('/vehicles');
+      if (d?.length) {
+        setVehicle(d[0]);
+        await AsyncStorage.setItem('driver_vehicle', JSON.stringify(d[0]));
+      } else if (d?.id) {
+        setVehicle(d);
+        await AsyncStorage.setItem('driver_vehicle', JSON.stringify(d));
+      }
+    } catch {
+      const cached = await AsyncStorage.getItem('driver_vehicle');
+      if (cached) {
+        setVehicle(JSON.parse(cached));
+        setShowingCached(true);
+      } else {
+        setError('Failed to load vehicle');
+      }
+    }
+    setLoading(false);
   };
 
   useEffect(() => { fetchVehicle(); }, []);
+
+  const handleReportIssue = async () => {
+    if (!issueText.trim()) return;
+    await syncEngine.enqueue({
+      type: 'CREATE',
+      resource: 'maintenance_issue',
+      data: { vehicleId: vehicle?.id, description: issueText.trim(), reportedAt: new Date().toISOString() },
+    });
+    setIssueText('');
+    setReportingIssue(false);
+    Alert.alert('Issue Reported', 'Maintenance issue will be submitted when online.');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.screenHeader}>
         <Text style={styles.screenTitle}>My Vehicle</Text>
       </View>
+
+      {showingCached ? (
+        <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>Showing cached data</Text>
+        </View>
+      ) : null}
 
       <ScrollView contentContainerStyle={styles.screenContent}>
         {loading ? (
@@ -79,7 +130,7 @@ export function VehicleScreen() {
             </View>
 
             <View style={styles.vehicleActions}>
-              <TouchableOpacity style={styles.vehicleActionBtn}>
+              <TouchableOpacity style={styles.vehicleActionBtn} onPress={() => setReportingIssue(true)}>
                 <Feather name="tool" size={20} color={theme.colors.primary} />
                 <Text style={styles.vehicleActionText}>Report Issue</Text>
               </TouchableOpacity>
@@ -88,6 +139,32 @@ export function VehicleScreen() {
                 <Text style={styles.vehicleActionText}>Schedule Service</Text>
               </TouchableOpacity>
             </View>
+
+            {reportingIssue && (
+              <View style={{ marginTop: 16, backgroundColor: 'white', borderRadius: 12, padding: 16 }}>
+                <TextInput
+                  style={{ backgroundColor: '#F8FAFC', borderRadius: 8, padding: 12, fontSize: 14, minHeight: 80, textAlignVertical: 'top' }}
+                  placeholder="Describe the issue..."
+                  value={issueText}
+                  onChangeText={setIssueText}
+                  multiline
+                />
+                <View style={{ flexDirection: 'row', marginTop: 12, gap: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => { setReportingIssue(false); setIssueText(''); }}
+                    style={{ flex: 1, backgroundColor: '#F1F5F9', borderRadius: 8, padding: 12, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, color: theme.colors.text }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleReportIssue}
+                    style={{ flex: 1, backgroundColor: theme.colors.primary, borderRadius: 8, padding: 12, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, color: 'white', fontWeight: '600' }}>Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </>
         )}
       </ScrollView>

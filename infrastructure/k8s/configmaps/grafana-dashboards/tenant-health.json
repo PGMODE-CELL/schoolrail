@@ -1,0 +1,304 @@
+{
+  "title": "Tenant Health Overview",
+  "uid": "tenant-health",
+  "version": 1,
+  "schemaVersion": 39,
+  "tags": ["schoolrail", "tenants", "multitenancy"],
+  "timezone": "utc",
+  "editable": true,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active Connections per Tenant",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": { "mode": "continuous-GrYlRd" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "list",
+        "showUnfilled": true,
+        "legend": { "displayMode": "hidden" }
+      },
+      "targets": [
+        {
+          "expr": "sum(tenant_active_connections{tenant=~\"$tenant\"}) by (tenant)",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Slow Queries per Tenant (P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text" },
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(tenant_query_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])) by (le, tenant)) * 1000",
+          "legendFormat": "P99 {{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Cache Hit Rate per Tenant",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text" },
+          "min": 0,
+          "max": 100
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tenant_cache_hits_total{tenant=~\"$tenant\"}[5m])) by (tenant) / (sum(rate(tenant_cache_hits_total{tenant=~\"$tenant\"}[5m])) by (tenant) + sum(rate(tenant_cache_misses_total{tenant=~\"$tenant\"}[5m])) by (tenant)) * 100",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Database Pool Usage per Tenant",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text" },
+          "min": 0,
+          "max": 100
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "tenant_pgbouncer_pool_usage{tenant=~\"$tenant\"} * 100",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Tenant Storage Usage",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1073741824 },
+              { "color": "red", "value": 10737418240 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "list",
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "expr": "tenant_database_size_bytes{tenant=~\"$tenant\"}",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "API Requests per Tenant",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text" },
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tenant_http_requests_total{tenant=~\"$tenant\"}[5m])) by (tenant)",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Active Users per Tenant",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 3, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "expr": "sum(tenant_active_users{tenant=~\"$tenant\"})",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Rate Limit Hits",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tenant_rate_limit_hits_total{tenant=~\"$tenant\"}[5m]))",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Avg Query Duration",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tenant_query_duration_seconds_sum{tenant=~\"$tenant\"}[5m])) / sum(rate(tenant_query_duration_seconds_count{tenant=~\"$tenant\"}[5m])) * 1000",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Total Tenants",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "expr": "count(tenant_active_connections)",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Connection Wait Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "tenant_pgbouncer_wait_time_seconds{tenant=~\"$tenant\"} * 1000",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Error Rate per Tenant",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tenant_http_requests_total{status=~\"5..\",tenant=~\"$tenant\"}[5m])) by (tenant) / sum(rate(tenant_http_requests_total{tenant=~\"$tenant\"}[5m])) by (tenant) * 100",
+          "legendFormat": "{{ tenant }}",
+          "interval": "15s"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(tenant_active_connections, tenant)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      }
+    ]
+  }
+}

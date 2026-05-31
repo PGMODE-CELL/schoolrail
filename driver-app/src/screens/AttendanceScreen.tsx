@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline, syncEngine } from '../config';
 
 export function AttendanceScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,31 +13,73 @@ export function AttendanceScreen() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
-  const fetchStudents = () => {
+  const fetchStudents = async () => {
     setLoading(true);
     setError('');
-    apiRequest('/attendance/students')
-      .then(d => { if (d?.length) setStudents(d); setLoading(false); })
-      .catch(() => { setError('Failed to load students'); setLoading(false); });
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      const cached = await AsyncStorage.getItem('driver_attendance_students');
+      if (cached) {
+        setStudents(JSON.parse(cached));
+        setShowingCached(true);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const d = await apiRequest('/attendance/students');
+      if (d?.length) {
+        setStudents(d);
+        await AsyncStorage.setItem('driver_attendance_students', JSON.stringify(d));
+      }
+    } catch {
+      const cached = await AsyncStorage.getItem('driver_attendance_students');
+      if (cached) {
+        setStudents(JSON.parse(cached));
+        setShowingCached(true);
+      } else {
+        setError('Failed to load students');
+      }
+    }
+    setLoading(false);
   };
 
   useEffect(() => { fetchStudents(); }, []);
 
-  const markAttendance = (studentId: string, status: string) => {
+  useEffect(() => {
+    const checkPending = async () => {
+      const queue = await AsyncStorage.getItem('sync_queue');
+      if (queue) {
+        const parsed = JSON.parse(queue);
+        setPendingCount(parsed.filter((op: any) => op.resource === 'driver_attendance').length);
+      }
+    };
+    const interval = setInterval(checkPending, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAttendance = async (studentId: string, status: string) => {
     setStudents(prev =>
-      prev.map(s => (s.student_id || s.id || s.studentId) === studentId ? { ...s, status } : s)
+      prev.map(s => (s.student_id || s.id || s.studentId) === studentId ? { ...s, status, _pending: true } : s)
     );
+    await syncEngine.enqueue({
+      type: 'UPDATE',
+      resource: 'driver_attendance',
+      data: { studentId, status, date: new Date().toISOString().slice(0, 10) },
+    });
   };
 
   const submitAttendance = async () => {
     setSubmitting(true);
     setSubmitError('');
     try {
-      await apiRequest('/attendance', {
-        method: 'POST',
-        body: JSON.stringify({ attendance: students }),
-      });
+      await syncEngine.sync();
     } catch {
       setSubmitError('Failed to submit attendance');
     }
@@ -55,6 +98,20 @@ export function AttendanceScreen() {
         <Text style={styles.screenTitle}>Attendance</Text>
         <Text style={styles.screenSubtitle}>Mark attendance for today's trip</Text>
       </View>
+
+      {showingCached ? (
+        <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>Showing cached data</Text>
+        </View>
+      ) : null}
+
+      {pendingCount > 0 ? (
+        <View style={{ backgroundColor: '#DBEAFE', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#1E40AF', fontWeight: '500' }}>
+            {pendingCount} attendance{pendingCount > 1 ? 's' : ''} pending sync
+          </Text>
+        </View>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 40 }} />
@@ -113,7 +170,12 @@ export function AttendanceScreen() {
                 return (
                   <View key={sid} style={styles.studentCard}>
                     <View style={styles.studentInfo}>
-                      <Text style={styles.studentName}>{student.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={styles.studentName}>{student.name}</Text>
+                        {student._pending && (
+                          <Feather name="clock" size={12} color={theme.colors.warning} style={{ marginLeft: 6 }} />
+                        )}
+                      </View>
                       <Text style={styles.studentTime}>{student.time || '-'}</Text>
                     </View>
                     <View style={styles.attendanceButtons}>

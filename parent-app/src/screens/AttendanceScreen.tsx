@@ -1,30 +1,64 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline, syncEngine } from '../config';
 
 export function AttendanceScreen() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
+  const [pendingSync, setPendingSync] = useState<any[]>([]);
+
+  const loadCachedAttendance = useCallback(async () => {
+    const cached = await AsyncStorage.getItem('parent_attendance');
+    if (cached) {
+      setAttendance(JSON.parse(cached));
+      setShowingCached(true);
+    }
+  }, []);
 
   const fetchAttendance = useCallback(async () => {
     setLoading(true);
     setError('');
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      await loadCachedAttendance();
+      setLoading(false);
+      return;
+    }
+
     try {
       const d = await apiRequest('/attendance/daily?attendance_date=' + new Date().toISOString().slice(0,10));
       if (Array.isArray(d)) {
         setAttendance(d);
+        await AsyncStorage.setItem('parent_attendance', JSON.stringify(d));
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to fetch attendance');
+      await loadCachedAttendance();
+      if (!showingCached) setError(e.message || 'Failed to fetch attendance');
     }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+
+  useEffect(() => {
+    const checkPending = async () => {
+      const queue = await AsyncStorage.getItem('sync_queue');
+      if (queue) {
+        const parsed = JSON.parse(queue);
+        setPendingSync(parsed.filter((op: any) => op.resource === 'attendance'));
+      }
+    };
+    const interval = setInterval(checkPending, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
@@ -39,7 +73,7 @@ export function AttendanceScreen() {
     );
   }
 
-  if (error) {
+  if (error && !showingCached) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screenHeader}>
@@ -68,6 +102,21 @@ export function AttendanceScreen() {
       <View style={styles.screenHeader}>
         <Text style={styles.screenTitle}>Attendance</Text>
       </View>
+
+      {showingCached ? (
+        <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>Showing cached data</Text>
+        </View>
+      ) : null}
+
+      {pendingSync.length > 0 ? (
+        <View style={{ backgroundColor: '#DBEAFE', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#1E40AF', fontWeight: '500' }}>
+            {pendingSync.length} change{pendingSync.length > 1 ? 's' : ''} pending sync
+          </Text>
+        </View>
+      ) : null}
+
       <ScrollView contentContainerStyle={styles.screenContent}>
         {attendance.length > 0 ? (
           <>
@@ -87,25 +136,31 @@ export function AttendanceScreen() {
             </View>
 
             <Text style={styles.sectionTitle}>Attendance History</Text>
-            {attendance.map((record: any, index: number) => (
-              <View key={index} style={styles.attendanceCard}>
-                <View style={styles.attendanceDate}>
-                  <Text style={styles.dateDay}>{new Date(record.date).getDate()}</Text>
-                  <Text style={styles.dateMonth}>{new Date(record.date).toLocaleString('default', { month: 'short' })}</Text>
-                </View>
-                <View style={styles.attendanceDetails}>
-                  <View style={styles.attendanceStatus}>
-                    <View style={[styles.statusDot, {
-                      backgroundColor: record.status === 'present' ? theme.colors.success :
-                                 record.status === 'absent' ? theme.colors.danger : theme.colors.warning
-                    }]} />
-                    <Text style={styles.statusText}>{record.status.charAt(0).toUpperCase() + record.status.slice(1)}</Text>
+            {attendance.map((record: any, index: number) => {
+              const isPending = pendingSync.some((op: any) => op.data?.recordId === record.id);
+              return (
+                <View key={index} style={styles.attendanceCard}>
+                  <View style={styles.attendanceDate}>
+                    <Text style={styles.dateDay}>{new Date(record.date).getDate()}</Text>
+                    <Text style={styles.dateMonth}>{new Date(record.date).toLocaleString('default', { month: 'short' })}</Text>
                   </View>
-                  <Text style={styles.timeText}>Pickup: {record.pickup}</Text>
-                  <Text style={styles.timeText}>Drop: {record.drop}</Text>
+                  <View style={styles.attendanceDetails}>
+                    <View style={styles.attendanceStatus}>
+                      <View style={[styles.statusDot, {
+                        backgroundColor: record.status === 'present' ? theme.colors.success :
+                                   record.status === 'absent' ? theme.colors.danger : theme.colors.warning
+                      }]} />
+                      <Text style={styles.statusText}>{record.status.charAt(0).toUpperCase() + record.status.slice(1)}</Text>
+                      {isPending && (
+                        <Feather name="clock" size={12} color={theme.colors.warning} style={{ marginLeft: 8 }} />
+                      )}
+                    </View>
+                    <Text style={styles.timeText}>Pickup: {record.pickup}</Text>
+                    <Text style={styles.timeText}>Drop: {record.drop}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </>
         ) : (
           <View style={{ alignItems: 'center', paddingVertical: 40 }}>

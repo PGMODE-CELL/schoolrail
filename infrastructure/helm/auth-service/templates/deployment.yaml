@@ -1,0 +1,266 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "auth-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: auth-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "auth-service.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        app.kubernetes.io/name: {{ include "auth-service.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/component: auth-service
+    spec:
+      serviceAccountName: {{ include "auth-service.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: auth-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          env:
+            - name: APP_NAME
+              value: "{{ .Values.config.appName }}"
+            - name: DEBUG
+              value: "{{ .Values.config.debug }}"
+            - name: ALLOWED_HOSTS
+              value: "{{ .Values.config.allowedHosts }}"
+            - name: CORS_ORIGINS
+              value: "{{ .Values.config.corsOrigins }}"
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: "{{ .Values.config.accessTokenExpireMinutes }}"
+            - name: REFRESH_TOKEN_EXPIRE_MINUTES
+              value: "{{ .Values.config.refreshTokenExpireMinutes }}"
+            - name: MFA_TOKEN_EXPIRE_MINUTES
+              value: "{{ .Values.config.mfaTokenExpireMinutes }}"
+            - name: PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+              value: "{{ .Values.config.passwordResetTokenExpireMinutes }}"
+            - name: MAX_LOGIN_ATTEMPTS
+              value: "{{ .Values.config.maxLoginAttempts }}"
+            - name: LOGIN_LOCKOUT_MINUTES
+              value: "{{ .Values.config.loginLockoutMinutes }}"
+            - name: SESSION_REDIS_DB
+              value: "{{ .Values.config.sessionRedisDb }}"
+            - name: CACHE_REDIS_DB
+              value: "{{ .Values.config.cacheRedisDb }}"
+            - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+              value: "{{ .Values.config.rateLimitRequestsPerMinute }}"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.databaseUrl.name }}
+                  key: {{ .Values.externalSecrets.databaseUrl.key }}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.secretKey.name }}
+                  key: {{ .Values.externalSecrets.secretKey.key }}
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.redisUrl.name }}
+                  key: {{ .Values.externalSecrets.redisUrl.key }}
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.smtpHost.name }}
+                  key: {{ .Values.externalSecrets.smtpHost.key }}
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.smtpPort.name }}
+                  key: {{ .Values.externalSecrets.smtpPort.key }}
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.smtpUser.name }}
+                  key: {{ .Values.externalSecrets.smtpUser.key }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.smtpPassword.name }}
+                  key: {{ .Values.externalSecrets.smtpPassword.key }}
+            - name: TWILIO_ACCOUNT_SID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.twilioAccountSid.name }}
+                  key: {{ .Values.externalSecrets.twilioAccountSid.key }}
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.twilioAuthToken.name }}
+                  key: {{ .Values.externalSecrets.twilioAuthToken.key }}
+            - name: TWILIO_PHONE_NUMBER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalSecrets.twilioPhoneNumber.name }}
+                  key: {{ .Values.externalSecrets.twilioPhoneNumber.key }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "auth-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: auth-service
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP
+    - name: metrics
+      port: {{ .Values.service.metricsPort }}
+      targetPort: {{ .Values.service.metricsPort }}
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "auth-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "auth-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "auth-service.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "auth-service.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "auth-service.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "auth-service.name" . }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api-gateway
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "auth-service.fullname" . }}-config
+  labels:
+    app.kubernetes.io/name: {{ include "auth-service.name" . }}
+data:
+  APP_NAME: "{{ .Values.config.appName }}"
+  DEBUG: "{{ .Values.config.debug }}"
+  ALLOWED_HOSTS: "{{ .Values.config.allowedHosts }}"
+  CORS_ORIGINS: "{{ .Values.config.corsOrigins }}"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "{{ .Values.config.accessTokenExpireMinutes }}"
+  REFRESH_TOKEN_EXPIRE_MINUTES: "{{ .Values.config.refreshTokenExpireMinutes }}"
+  MFA_TOKEN_EXPIRE_MINUTES: "{{ .Values.config.mfaTokenExpireMinutes }}"
+  PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: "{{ .Values.config.passwordResetTokenExpireMinutes }}"
+  MAX_LOGIN_ATTEMPTS: "{{ .Values.config.maxLoginAttempts }}"
+  LOGIN_LOCKOUT_MINUTES: "{{ .Values.config.loginLockoutMinutes }}"
+  SESSION_REDIS_DB: "{{ .Values.config.sessionRedisDb }}"
+  CACHE_REDIS_DB: "{{ .Values.config.cacheRedisDb }}"
+  RATE_LIMIT_REQUESTS_PER_MINUTE: "{{ .Values.config.rateLimitRequestsPerMinute }}"

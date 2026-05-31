@@ -1,30 +1,61 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { styles } from '../styles';
-import { apiRequest } from '../config';
+import { apiRequest, isOnline, syncEngine } from '../config';
 
 export function FeesScreen() {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showingCached, setShowingCached] = useState(false);
+
+  const loadCachedFees = useCallback(async () => {
+    const cached = await AsyncStorage.getItem('parent_fees');
+    if (cached) {
+      setFees(JSON.parse(cached));
+      setShowingCached(true);
+    }
+  }, []);
 
   const fetchFees = useCallback(async () => {
     setLoading(true);
     setError('');
+    setShowingCached(false);
+
+    const online = await isOnline();
+    if (!online) {
+      await loadCachedFees();
+      setLoading(false);
+      return;
+    }
+
     try {
       const d = await apiRequest('/fees?student_id=1');
       if (d?.pending || d?.paid) {
-        setFees([...(d.pending || []), ...(d.paid || [])]);
+        const all = [...(d.pending || []), ...(d.paid || [])];
+        setFees(all);
+        await AsyncStorage.setItem('parent_fees', JSON.stringify(all));
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to fetch fees');
+      await loadCachedFees();
+      if (!showingCached) setError(e.message || 'Failed to fetch fees');
     }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchFees(); }, [fetchFees]);
+
+  const handlePayNow = async (fee: any) => {
+    await syncEngine.enqueue({
+      type: 'UPDATE',
+      resource: 'payment',
+      data: { feeId: fee.id, amount: fee.amount, action: 'pay' },
+    });
+    Alert.alert('Payment Queued', 'Your payment will be processed when you are back online.');
+  };
 
   if (loading) {
     return (
@@ -39,7 +70,7 @@ export function FeesScreen() {
     );
   }
 
-  if (error) {
+  if (error && !showingCached) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.screenHeader}>
@@ -61,13 +92,20 @@ export function FeesScreen() {
 
   const total = fees.reduce((s: number, f: any) => s + Number(f.amount), 0);
   const paid = fees.filter((f: any) => f.status === 'paid').reduce((s: number, f: any) => s + Number(f.amount), 0);
-  const pending = fees.filter((f: any) => f.status === 'pending' || f.status === 'overdue').reduce((s: number, f: any) => s + Number(f.amount), 0);
+  const pendingAmt = fees.filter((f: any) => f.status === 'pending' || f.status === 'overdue').reduce((s: number, f: any) => s + Number(f.amount), 0);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.screenHeader}>
         <Text style={styles.screenTitle}>Fees</Text>
       </View>
+
+      {showingCached ? (
+        <View style={{ backgroundColor: '#FEF3C7', padding: 8, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '500' }}>Showing cached data</Text>
+        </View>
+      ) : null}
+
       <ScrollView contentContainerStyle={styles.screenContent}>
         {fees.length > 0 ? (
           <>
@@ -82,7 +120,7 @@ export function FeesScreen() {
               </View>
               <View style={styles.feeSummaryItem}>
                 <Text style={styles.feeSummaryLabel}>Pending</Text>
-                <Text style={[styles.feeSummaryValue, { color: theme.colors.warning }]}>₹{pending}</Text>
+                <Text style={[styles.feeSummaryValue, { color: theme.colors.warning }]}>₹{pendingAmt}</Text>
               </View>
             </View>
 
@@ -112,7 +150,14 @@ export function FeesScreen() {
 
             <TouchableOpacity
               style={styles.payButton}
-              onPress={() => Alert.alert('Pay Now', 'Payment gateway will be integrated soon.')}
+              onPress={() => {
+                const pendingFees = fees.filter((f: any) => f.status === 'pending' || f.status === 'overdue');
+                if (pendingFees.length > 0) {
+                  handlePayNow(pendingFees[0]);
+                } else {
+                  Alert.alert('No Pending Fees', 'All fees have been paid.');
+                }
+              }}
             >
               <Text style={styles.payButtonText}>Pay Now</Text>
             </TouchableOpacity>

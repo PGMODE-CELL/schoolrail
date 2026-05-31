@@ -1,0 +1,124 @@
+replicaCount: 2
+
+image:
+  repository: schoolrail/tenant-service
+  tag: latest
+  pullPolicy: Always
+
+pgbouncer:
+  enabled: true
+  image:
+    repository: bitnami/pgbouncer
+    tag: 1.22
+  pool:
+    mode: transaction
+    size: 25
+    reservePool: 5
+    maxClientConn: 200
+    defaultPoolSize: 25
+    minPoolSize: 5
+    reservePoolSize: 5
+    serverIdleTimeout: 600
+    clientIdleTimeout: 600
+    queryTimeout: 30
+    maxPreparedStatements: 100
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+config:
+  appName: SchoolRail Tenant Service
+  debug: false
+  maxTenants: 1000
+  tenantConnectionPoolMin: 5
+  tenantConnectionPoolMax: 30
+  databasePoolSize: 20
+  databasePoolOverflow: 10
+  databasePoolTimeout: 30
+  analyticsRetentionDays: 90
+  perTenantTemplateDatabase: false
+  encryptionEnabled: true
+
+migration:
+  enabled: true
+  image:
+    repository: schoolrail/tenant-service
+    tag: latest
+    pullPolicy: Always
+  backoffLimit: 5
+  activeDeadlineSeconds: 300
+  restartPolicy: Never
+
+externalSecrets:
+  databaseUrl:
+    name: database-url
+    key: tenant-database-url
+  pgbouncerDatabaseUrl:
+    name: database-url
+    key: pgbouncer-tenant-database-url
+  secretKey:
+    name: secret-key
+    key: tenant-secret-key
+  redisUrl:
+    name: redis-url
+    key: tenant-redis-url
+  encryptionKey:
+    name: tenant-encryption-key
+    key: encryption-key
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+service:
+  type: ClusterIP
+  port: 8000
+  metricsPort: 8001
+
+ingress:
+  enabled: true
+  className: kong
+  annotations:
+    konghq.com/strip-path: "true"
+  hosts:
+    - host: api.schoolrail.app
+      paths:
+        - /api/v1/tenants
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8001"
+  sidecar.istio.io/inject: "true"
