@@ -1,27 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { styles } from '../styles';
 import { apiRequest } from '../config';
 import { useAuth } from '../context/AuthContext';
 
-const mockChildren = [
-  { id: '1', name: 'Aryan Sharma', class: 'Class 5-A', route: 'Route 1', vehicle: 'SR-001' },
-  { id: '2', name: 'Priya Sharma', class: 'Class 3-B', route: 'Route 2', vehicle: 'SR-003' },
-];
-
 export function ProfileScreen() {
-  const { user: authUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    apiRequest('/students/').then(d => { if (d?.length) setStudents(d); }).catch(() => {});
+  const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const d = await apiRequest('/students/');
+      if (Array.isArray(d)) setStudents(d);
+    } catch (e: any) {
+      setError(e.message || 'Failed to fetch students');
+    }
+    setLoading(false);
   }, []);
 
-  const displayChildren = students.length > 0
-    ? students.map((s: any) => ({ id: String(s.id), name: s.full_name || `${s.first_name} ${s.last_name}`, class: s.class_name || '', route: s.route_name || '', vehicle: s.vehicle_name || '' }))
-    : mockChildren;
+  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Profile</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Profile</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Feather name="alert-circle" size={48} color={theme.colors.danger} />
+          <Text style={{ fontSize: 16, color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }}>{error}</Text>
+          <TouchableOpacity
+            onPress={fetchStudents}
+            style={{ marginTop: 16, backgroundColor: theme.colors.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+          >
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const displayChildren = students.map((s: any) => ({
+    id: String(s.id),
+    name: s.full_name || `${s.first_name} ${s.last_name}`,
+    class: s.class_name || '',
+    route: s.route_name || '',
+    vehicle: s.vehicle_name || '',
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,10 +75,10 @@ export function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.screenContent}>
         <View style={styles.profileHeader}>
           <View style={styles.profileAvatar}>
-            <Text style={styles.profileInitial}>{(authUser?.full_name || 'P')[0]}</Text>
+            <Text style={styles.profileInitial}>{(user?.full_name || 'U')[0]}</Text>
           </View>
-          <Text style={styles.profileName}>{authUser?.full_name || 'Parent User'}</Text>
-          <Text style={styles.profileEmail}>{authUser?.email || 'parent@example.com'}</Text>
+          <Text style={styles.profileName}>{user?.full_name || ''}</Text>
+          <Text style={styles.profileEmail}>{user?.email || ''}</Text>
         </View>
 
         <View style={styles.profileSection}>
@@ -42,30 +86,34 @@ export function ProfileScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue}>{authUser?.phone || '+91 9876543210'}</Text>
+              <Text style={styles.infoValue}>{user?.phone || ''}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{authUser?.email || 'parent@example.com'}</Text>
+              <Text style={styles.infoValue}>{user?.email || ''}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.profileSection}>
-          <Text style={styles.sectionTitle}>Children</Text>
-          {displayChildren.map((child: any) => (
-            <View key={child.id} style={styles.childInfoCard}>
-              <View style={styles.childInfoAvatar}>
-                <Text style={styles.childInfoInitial}>{child.name[0]}</Text>
+        {displayChildren.length > 0 && (
+          <View style={styles.profileSection}>
+            <Text style={styles.sectionTitle}>Children</Text>
+            {displayChildren.map((child: any) => (
+              <View key={child.id} style={styles.childInfoCard}>
+                <View style={styles.childInfoAvatar}>
+                  <Text style={styles.childInfoInitial}>{child.name[0]}</Text>
+                </View>
+                <View style={styles.childInfoDetails}>
+                  <Text style={styles.childInfoName}>{child.name}</Text>
+                  <Text style={styles.childInfoClass}>{child.class}</Text>
+                  {(child.route || child.vehicle) && (
+                    <Text style={styles.childInfoRoute}>{child.route} • {child.vehicle}</Text>
+                  )}
+                </View>
               </View>
-              <View style={styles.childInfoDetails}>
-                <Text style={styles.childInfoName}>{child.name}</Text>
-                <Text style={styles.childInfoClass}>{child.class}</Text>
-                <Text style={styles.childInfoRoute}>{child.route} • {child.vehicle}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Feather name="log-out" size={20} color={theme.colors.danger} />

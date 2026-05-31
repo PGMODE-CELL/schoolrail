@@ -13,25 +13,43 @@ export function LoginScreen({ onLogin }: Props) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validate = (): boolean => {
+    let valid = true;
+    setEmailError('');
+    setPasswordError('');
+
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError('Enter a valid email address');
+      valid = false;
+    }
+
+    if (!password) {
+      setPasswordError('Password is required');
+      valid = false;
+    }
+
+    return valid;
+  };
 
   const handleLogin = async () => {
-    setLoading(true);
     setError('');
+    if (!validate()) return;
+
+    setLoading(true);
     try {
-      const data = await apiLogin(email, password);
+      const data = await apiLogin(email.trim(), password);
       await AsyncStorage.setItem('token', data.access_token);
       const me = await apiRequest('/auth/me');
       await AsyncStorage.setItem('user', JSON.stringify(me));
       onLogin(data.access_token, me);
     } catch (e: any) {
-      if (email === 'parent1@schoolrail.com' && password === 'admin123') {
-        const mockUser = { id: 3, username: 'parent1', email, full_name: 'Parent User', role: 'parent' };
-        await AsyncStorage.setItem('token', 'mock');
-        await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-        onLogin('mock', mockUser);
-      } else {
-        setError(e.message || 'Login failed');
-      }
+      setError(e.message || 'Login failed');
     }
     setLoading(false);
   };
@@ -56,23 +74,44 @@ export function LoginScreen({ onLogin }: Props) {
         <View style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B', marginBottom: 8 }}>Email</Text>
           <TextInput
-            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#E2E8F0' }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 16,
+              fontSize: 16,
+              borderWidth: 1,
+              borderColor: emailError ? '#EF4444' : '#E2E8F0',
+            }}
             placeholder="Enter your email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => { setEmail(t); if (emailError) setEmailError(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {emailError ? (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, marginLeft: 4 }}>{emailError}</Text>
+          ) : null}
         </View>
+
         <View style={{ marginBottom: 24 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B', marginBottom: 8 }}>Password</Text>
           <TextInput
-            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#E2E8F0' }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 16,
+              fontSize: 16,
+              borderWidth: 1,
+              borderColor: passwordError ? '#EF4444' : '#E2E8F0',
+            }}
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(t) => { setPassword(t); if (passwordError) setPasswordError(''); }}
             secureTextEntry
           />
+          {passwordError ? (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, marginLeft: 4 }}>{passwordError}</Text>
+          ) : null}
         </View>
 
         <TouchableOpacity

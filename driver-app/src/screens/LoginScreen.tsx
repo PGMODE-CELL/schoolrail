@@ -8,29 +8,36 @@ interface Props {
   onLogin: (token: string, user: any) => void;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function LoginScreen({ onLogin }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validate = (): boolean => {
+    const errs: { email?: string; password?: string } = {};
+    if (!email.trim()) errs.email = 'Email is required';
+    else if (!EMAIL_REGEX.test(email.trim())) errs.email = 'Invalid email format';
+    if (!password) errs.password = 'Password is required';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleLogin = async () => {
-    setLoading(true); setError('');
+    setError('');
+    if (!validate()) return;
+    setLoading(true);
     try {
-      const data = await apiLogin(email, password);
+      const data = await apiLogin(email.trim(), password);
       await AsyncStorage.setItem('token', data.access_token);
       const me = await apiRequest('/auth/me');
       await AsyncStorage.setItem('user', JSON.stringify(me));
       onLogin(data.access_token, me);
     } catch (e: any) {
-      if (email === 'driver1@schoolrail.com' && password === 'admin123') {
-        const mockUser = { id: 2, username: 'driver1', email, full_name: 'Driver User', role: 'driver' };
-        await AsyncStorage.setItem('token', 'mock');
-        await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-        onLogin('mock', mockUser);
-      } else {
-        setError(e.message || 'Login failed');
-      }
+      setError(e.message || 'Login failed');
     }
     setLoading(false);
   };
@@ -53,23 +60,29 @@ export function LoginScreen({ onLogin }: Props) {
         <View style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B', marginBottom: 8 }}>Email</Text>
           <TextInput
-            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#E2E8F0' }}
-            placeholder="driver1@schoolrail.com"
+            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: fieldErrors.email ? '#EF4444' : '#E2E8F0' }}
+            placeholder="driver@school.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => { setEmail(t); setFieldErrors(p => ({ ...p, email: undefined })); }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {fieldErrors.email ? (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{fieldErrors.email}</Text>
+          ) : null}
         </View>
         <View style={{ marginBottom: 24 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B', marginBottom: 8 }}>Password</Text>
           <TextInput
-            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#E2E8F0' }}
+            style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: fieldErrors.password ? '#EF4444' : '#E2E8F0' }}
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(t) => { setPassword(t); setFieldErrors(p => ({ ...p, password: undefined })); }}
             secureTextEntry
           />
+          {fieldErrors.password ? (
+            <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{fieldErrors.password}</Text>
+          ) : null}
         </View>
         <TouchableOpacity
           onPress={handleLogin}
@@ -78,10 +91,6 @@ export function LoginScreen({ onLogin }: Props) {
         >
           {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Sign In</Text>}
         </TouchableOpacity>
-        <View style={{ marginTop: 24, padding: 16, backgroundColor: '#F1F5F9', borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginBottom: 8 }}>Demo Credentials</Text>
-          <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>driver1@schoolrail.com / admin123</Text>
-        </View>
       </View>
     </SafeAreaView>
   );
