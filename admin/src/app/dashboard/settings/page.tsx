@@ -10,8 +10,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [school, setSchool] = useState({ name: 'Delhi Public School', code: 'DPS001', address: 'Sector 15, Dwarka, New Delhi - 110078', phone: '+91 11 25678901', email: 'info@dps.edu.in', website: 'www.dps.edu.in' });
-  const [account, setAccount] = useState({ fullName: 'Admin User', username: 'admin', email: 'admin@dps.edu.in', phone: '+91 98765 43210' });
+  const [school, setSchool] = useState({ name: '', code: '', address: '', phone: '', email: '', website: '' });
+  const [account, setAccount] = useState(() => {
+    try {
+      const u = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      return { fullName: u.full_name || u.name || '', username: u.email?.split('@')[0] || '', email: u.email || '', phone: '' };
+    } catch { return { fullName: '', username: '', email: '', phone: '' }; }
+  });
   const [password, setPassword] = useState({ current: '', newPwd: '', confirm: '' });
   const [notifications, setNotifications] = useState([
     { label: 'Email notifications', description: 'Receive email alerts for important events', enabled: true },

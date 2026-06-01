@@ -124,10 +124,6 @@ export function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        <View style={{ marginTop: 24, padding: 16, backgroundColor: '#F1F5F9', borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginBottom: 8 }}>Demo Credentials</Text>
-          <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>parent1@schoolrail.com / admin123</Text>
-        </View>
       </View>
     </SafeAreaView>
   );

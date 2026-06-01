@@ -193,20 +193,20 @@ jobs:
     steps:
       - name: Check deployment health
         run: |
+          DOMAIN="${{ vars.DEPLOY_DOMAIN || 'localhost:8000' }}"
           # Gateway
-          curl -f --retry 10 --retry-delay 5 https://api.schoolrail.com/health
-          # Admin
-          curl -f --retry 5 --retry-delay 10 https://admin.schoolrail.com
+          curl -f --retry 10 --retry-delay 5 "https://$DOMAIN/health"
           # Auth service
-          curl -f --retry 5 --retry-delay 5 https://api.schoolrail.com/api/v1/auth/me \
+          curl -f --retry 5 --retry-delay 5 "https://$DOMAIN/api/v1/auth/me" \
             -H "Authorization: Bearer ${{ secrets.TEST_JWT }}"
 
       - name: Run smoke tests
         run: |
           pip install httpx
           python -c "
-          import httpx
-          r = httpx.get('https://api.schoolrail.com/health')
+          import os, httpx
+          domain = os.getenv('DEPLOY_DOMAIN', 'localhost:8000')
+          r = httpx.get(f'https://{domain}/health')
           assert r.status_code == 200, f'Health check failed: {r.status_code}'
           data = r.json()
           assert data['status'] == 'ok', f'Status not ok: {data}'

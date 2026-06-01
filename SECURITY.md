@@ -49,7 +49,7 @@ Email: `security@schoolrail.com`
 ### Network Security
 - **Default deny** network policies in all K8s namespaces
 - Services communicate via mTLS (Istio/Envoy sidecar)
-- API Gateway (Kong) is the only public-facing entry point
+- API Gateway is the only public-facing entry point
 - WAF rules block SQL injection, XSS, path traversal
 - DDoS protection via Cloudflare
 

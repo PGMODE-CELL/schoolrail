@@ -47,7 +47,7 @@ git checkout -b feat/your-feature-name
 ```bash
 cd backend/services/auth      # or fleet, routing, students, geo, tenant, gateway
 pip install -r requirements.txt
-uvicorn main:app --reload --port 4001
+uvicorn main:app --reload --port 8001
 ```
 
 **Admin Panel (Next.js)**:

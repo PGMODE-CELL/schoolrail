@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Shared PostgreSQL (Citus) for global registry (tenants, users)
 
 #### Microservice Architecture
-- **API Gateway** — Kong with rate limiting (Redis Lua), JWT auth, tenant resolution
+- **API Gateway** — FastAPI proxy with rate limiting, JWT auth, tenant resolution
 - **Auth Service** — Register, login, refresh, logout, SSO/OAuth2, RS256 rotating keys
 - **Fleet Service** — Vehicles, drivers, maintenance scheduling
 - **Routing Service** — Routes, stops, async TSP route optimization
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 #### Infrastructure-as-Code
 - **Terraform**: EKS, RDS (multi-AZ + read replicas), Redis cluster, RabbitMQ, Vault
-- **Helm charts**: Kong gateway, auth-service, tenant-service (+ PgBouncer sidecar)
+- **Helm charts**: API gateway, auth-service, tenant-service (+ PgBouncer sidecar)
 - **K8s configs**: Namespaces, network policies (default deny), PodSecurityPolicies, OTEL
 - **CI/CD**: ArgoCD ApplicationSet + GitHub Actions (lint → test → build → migrate → deploy → smoke → rollback)
 - **Docker Compose**: All 16 services for local development
@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Backend restructured from monolithic FastAPI to 8 microservices
-- Admin panel API URL now points to Kong gateway (port 8000)
+- Admin panel API URL now points to API gateway (port 8000)
 - Mobile apps rewritten for offline-first architecture
 - Database schema migrated to per-tenant isolation model
 

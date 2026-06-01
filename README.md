@@ -49,7 +49,7 @@ Built to scale from a single school to millions of institutions — for free.
 ```
                                   ┌──────────────────┐
                                   │   API Gateway    │
-                                  │  (Kong/Traefik)  │
+                                  │  (FastAPI Proxy) │
                                   │ Rate Limit | Auth│
                                   └────────┬─────────┘
                                            │
@@ -57,12 +57,12 @@ Built to scale from a single school to millions of institutions — for free.
               │                            │                            │
        ┌──────▼──────┐            ┌───────▼───────┐           ┌────────▼────────┐
        │  Auth Svc   │            │  Fleet Svc    │           │  Routing Svc    │
-       │  :4001      │            │  :4002        │           │  :4003          │
+       │  :8001      │            │  :8002        │           │  :8003          │
        └──────┬──────┘            └───────┬───────┘           └────────┬────────┘
               │                            │                            │
        ┌──────▼──────┐            ┌───────▼───────┐           ┌────────▼────────┐
        │  Student    │            │  Payment      │           │  Geo            │
-       │  Svc :4004  │            │  Svc :4005    │           │  Svc :4006      │
+       │  Svc :8004  │            │  Svc :8007    │           │  Svc :8005      │
        └──────┬──────┘            └───────┬───────┘           └────────┬────────┘
               │                            │                            │
               └────────────────────────────┼────────────────────────────┘
@@ -108,7 +108,7 @@ Connection pooling via PgBouncer, cached lookups via Redis, zero cross-tenant da
 |-------|-----------|-------|
 | **Frontend (Admin)** | Next.js 14, TypeScript, Tailwind CSS, Recharts | SSR + CDN |
 | **Mobile** | React Native 0.73, Expo SDK 50, WatermelonDB | Offline-first |
-| **API Gateway** | Kong (or Traefik) + Lua plugins | 100k req/s |
+| **API Gateway** | FastAPI proxy + rate limit middleware | 100k req/s |
 | **Microservices** | Python FastAPI 0.115+, asyncpg, SQLAlchemy async | Horizontal pod autoscaling |
 | **Async Workers** | Celery + RabbitMQ + Redis | Separate worker pools |
 | **Database** | PostgreSQL 16 + Citus (distributed) + PgBouncer | Read replicas, sharding |
@@ -219,7 +219,7 @@ schoolrail/
 - **Rate limiting** — Per-tenant, per-endpoint (Redis sliding window)
 - **Audit logging** — Immutable, all mutations logged
 - **Secrets management** — HashiCorp Vault with dynamic credentials
-- **DDoS protection** — Cloudflare + WAF + Kong rate limiting
+- **DDoS protection** — Cloudflare + WAF + rate limiting
 
 ---
 

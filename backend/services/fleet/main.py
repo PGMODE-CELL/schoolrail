@@ -132,11 +132,11 @@ async def upcoming_maintenance():
 
 @app.get("/schools")
 async def list_schools():
-    return {"items": [{"id": "default", "name": "Default School", "tenant_id": "default"}], "total": 1}
+    return {"items": [], "total": 0}
 
 @app.get("/schools/{school_id}")
 async def get_school(school_id: str):
-    return {"id": school_id, "name": "Default School", "tenant_id": "default"}
+    return {"id": school_id, "name": "", "tenant_id": ""}
 
 @app.get("/schools/{school_id}/stats")
 async def school_stats(school_id: str):

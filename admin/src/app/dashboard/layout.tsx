@@ -25,10 +25,11 @@ const navItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [user] = useState({
-    name: 'Admin User',
-    role: 'Administrator',
-    email: 'admin@schoolrail.com'
+  const [user] = useState(() => {
+    try {
+      const u = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      return { name: u.full_name || u.name || 'User', role: u.roles?.[0] || u.role || 'User', email: u.email || '' };
+    } catch { return { name: 'User', role: 'User', email: '' }; }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -37,8 +38,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   const wsUrl = typeof window !== 'undefined'
-    ? `ws://localhost:3001/ws?token=${localStorage.getItem('token') || ''}`
-    : 'ws://localhost:3001/ws';
+    ? `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws'}?token=${localStorage.getItem('token') || ''}`
+    : (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws');
   const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl, { reconnect: true });
 
   useEffect(() => {

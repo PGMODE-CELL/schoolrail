@@ -30,15 +30,15 @@ docker compose up -d
 
 | Service | Container | Port |
 |---------|-----------|------|
-| Kong API Gateway | kong | 8000 |
-| Auth Service | auth-service | 4001 |
-| Fleet Service | fleet-service | 4002 |
-| Routing Service | routing-service | 4003 |
-| Student Service | student-service | 4004 |
-| Payment Service | payment-service | 4005 |
-| Geo Service | geo-service | 4006 |
-| Tenant Service | tenant-service | 4007 |
-| Notification Service | notification-service | 4008 |
+| API Gateway | gateway | 8000 |
+| Auth Service | auth-service | 8001 |
+| Fleet Service | fleet-service | 8002 |
+| Routing Service | routing-service | 8003 |
+| Student Service | student-service | 8004 |
+| Geo Service | geo-service | 8005 |
+| Tenant Service | tenant-service | 8006 |
+| Payment Service | payment-service | 8007 |
+| Notification Service | notification-service | 8008 |
 | Celery Worker | celery-worker | — |
 | PostgreSQL 16 | postgres | 5432 |
 | PgBouncer | pgbouncer | 6432 |
@@ -117,7 +117,7 @@ pip install fastapi uvicorn asyncpg sqlalchemy[asyncio] redis aio-pika prometheu
 
 # Auth Service
 cd backend/services/auth
-uvicorn main:app --reload --port 4001
+uvicorn main:app --reload --port 8001
 
 # Gateway
 cd backend/services/gateway
@@ -190,9 +190,9 @@ Scan the QR code with:
 - PostgreSQL takes ~30s to initialize on first run
 - Run: `docker compose restart postgres`
 
-### Kong returns 503
-- Microservices take a few seconds to register
-- Check: `docker compose logs kong`
+### Gateway returns 503
+- Microservices take a few seconds to start
+- Run: `docker compose logs gateway`
 
 ### Need help?
 - [GitHub Issues](https://github.com/schoolrail/schoolrail/issues)

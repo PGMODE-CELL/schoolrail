@@ -57,7 +57,7 @@ export function LoginScreen() {
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B', marginBottom: 8 }}>Email</Text>
           <TextInput
             style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: fieldErrors.email ? '#EF4444' : '#E2E8F0' }}
-            placeholder="driver@school.com"
+            placeholder="you@school.edu"
             value={email}
             onChangeText={(t) => { setEmail(t); setFieldErrors(p => ({ ...p, email: undefined })); }}
             keyboardType="email-address"

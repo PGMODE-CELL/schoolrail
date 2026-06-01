@@ -18,10 +18,10 @@
        └───────────────────┼───────────────────┘
                            │
               ┌────────────▼────────────┐
-              │     API Gateway         │
-              │  (Kong / Traefik)       │
-              │  Rate limit | Auth |    │
-              │  Tenant resolution      │
+               │     API Gateway         │
+               │ (FastAPI proxy)         │
+               │  Rate limit | Auth |    │
+               │  Tenant resolution      │
               └────────────┬────────────┘
                            │
                            ▼
@@ -35,14 +35,14 @@
 ┌──────────┐     ┌──────────┐       ┌──────────┐
 │ Auth     │     │ Fleet    │       │ Routing  │
 │ Service  │◄───►│ Service  │◄─────►│ Service  │
-│  :4001   │     │  :4002   │       │  :4003   │
+│  :8001   │     │  :8002   │       │  :8003   │
 └────┬─────┘     └────┬─────┘       └────┬─────┘
      │                │                  │
      ▼                ▼                  ▼
 ┌──────────┐     ┌──────────┐       ┌──────────┐
-│ Student  │     │Payment   │       │ Geo      │
+│ Student  │     │ Geo      │       │ Tenant   │
 │ Service  │◄───►│ Service  │       │ Service  │
-│  :4004   │     │  :4005   │       │  :4006   │
+│  :8004   │     │  :8005   │       │  :8006   │
 └────┬─────┘     └────┬─────┘       └────┬─────┘
      │                │                  │
      └────────────────┼──────────────────┘
@@ -83,7 +83,7 @@
 
 | Layer              | Technology                          |
 |--------------------|-------------------------------------|
-| API Gateway        | Kong + Lua plugins                  |
+| API Gateway        | FastAPI proxy + middleware          |
 | Service Mesh       | Envoy / Istio                       |
 | Services           | Python FastAPI / Go (geo)           |
 | Async Workers      | Celery + Redis + RabbitMQ           |
