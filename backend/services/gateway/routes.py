@@ -41,6 +41,8 @@ def _match_route(path: str) -> tuple[str, RouteConfig]:
             return prefix, config
     raise ValueError(f"No route configured for {path}")
 
+API_PREFIX = "/api/v1"
+
 async def proxy_request(method: str, target_url: str, request: Request) -> JSONResponse:
     headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
     body = await request.body()
@@ -53,11 +55,12 @@ async def proxy_request(method: str, target_url: str, request: Request) -> JSONR
 async def gateway_proxy(path: str, request: Request):
     full_path = f"/{path}"
     try:
-        prefix, config = _match_route(full_path)
+        _match_route(full_path)
     except ValueError:
         return JSONResponse(status_code=404, content={"code": "NOT_FOUND", "message": f"No route for {full_path}"})
+    prefix, config = _match_route(full_path)
     target_base = config["target"]
-    remaining_path = full_path[len(prefix):]
+    remaining_path = full_path[len(API_PREFIX):]
     target_url = f"{target_base}{remaining_path}"
     if request.query_string:
         target_url += f"?{request.query_string.decode()}"

@@ -110,6 +110,14 @@ async def list_drivers():
 async def get_driver(driver_id: str):
     return DriverResponse(id=driver_id, user_id="", license_number="", phone="", status="available")
 
+@app.put("/drivers/{driver_id}")
+async def update_driver(driver_id: str, data: DriverCreate):
+    return DriverResponse(id=driver_id, user_id=data.user_id, license_number=data.license_number, phone=data.phone, status="available")
+
+@app.delete("/drivers/{driver_id}")
+async def delete_driver(driver_id: str):
+    return {"status": "deleted"}
+
 @app.get("/drivers/{driver_id}/routes")
 async def driver_routes(driver_id: str):
     return {"items": [], "driver_id": driver_id}

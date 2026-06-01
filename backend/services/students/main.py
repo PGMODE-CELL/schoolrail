@@ -88,8 +88,12 @@ async def update_student(student_id: str, data: StudentCreate):
 async def delete_student(student_id: str):
     return {"status": "deleted"}
 
-@app.post("/attendance/batch")
-async def batch_attendance(data: AttendanceBatchRequest):
+@app.post("/attendance")
+async def create_attendance():
+    return {"status": "ok", "id": "00000000-0000-0000-0000-000000000000"}
+
+@app.post("/attendance/bulk")
+async def bulk_attendance(data: AttendanceBatchRequest):
     return {"processed": len(data.items), "status": "ok"}
 
 @app.get("/attendance/daily")

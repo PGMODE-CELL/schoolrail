@@ -76,7 +76,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
 }
 
 export function ConnectionStatus({ className = '' }: { className?: string }) {
-  const { isConnected } = useWebSocket('ws://localhost:3001/ws');
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws';
+  const { isConnected } = useWebSocket(wsUrl);
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />

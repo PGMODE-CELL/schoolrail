@@ -1,6 +1,8 @@
+import uuid
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from fastapi import FastAPI, HTTPException, Depends
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Depends, Header
 from pydantic import BaseModel, EmailStr
 from prometheus_client import make_asgi_app
 from redis.asyncio import Redis
@@ -38,7 +40,7 @@ app = FastAPI(title="SchoolRail Auth Service", version="1.0.0", lifespan=lifespa
 app.mount("/metrics", make_asgi_app())
 
 class RegisterRequest(BaseModel):
-    tenant_id: str
+    tenant_id: str = "default"
     email: str
     password: str
     full_name: str
@@ -46,7 +48,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
-    tenant_id: str
+    tenant_id: str = "default"
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -56,6 +58,10 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str = ""
+    email: str = ""
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
@@ -67,6 +73,16 @@ class UserResponse(BaseModel):
     full_name: str
     roles: list[str]
     is_active: bool
+
+async def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail={"code": "NO_TOKEN", "message": "Missing or invalid Authorization header"})
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = jwt_manager.decode_token(token)
+        return {"user_id": payload["sub"], "tenant_id": payload["tenant_id"], "roles": payload.get("roles", [])}
+    except Exception:
+        raise HTTPException(status_code=401, detail={"code": "INVALID_TOKEN", "message": "Invalid or expired token"})
 
 @app.get("/health")
 async def health():
@@ -135,9 +151,38 @@ async def refresh(data: RefreshRequest):
 async def logout():
     return {"status": "ok", "message": "Logged out"}
 
-@app.get("/auth/me", response_model=UserResponse)
-async def get_me():
-    return UserResponse(id="", email="", full_name="", roles=[], is_active=True)
+@app.get("/auth/me")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    tenant_id = current_user["tenant_id"]
+    session = session_factory.get_session(tenant_id)
+    async for s in session:
+        result = await s.execute("SELECT id, email, full_name, roles, is_active FROM users WHERE id = :id AND tenant_id = :tid", {"id": user_id, "tid": tenant_id})
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail={"code": "USER_NOT_FOUND", "message": "User not found"})
+        return UserResponse(id=str(row[0]), email=row[1], full_name=row[2], roles=row[3], is_active=row[4])
+
+@app.put("/auth/me")
+async def update_me(data: UpdateProfileRequest, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    tenant_id = current_user["tenant_id"]
+    session = session_factory.get_session(tenant_id)
+    async for s in session:
+        fields = []
+        params = {"id": user_id, "tid": tenant_id}
+        if data.full_name:
+            fields.append("full_name = :fn")
+            params["fn"] = data.full_name
+        if data.email:
+            fields.append("email = :email")
+            params["email"] = data.email
+        if fields:
+            await s.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = :id AND tenant_id = :tid", params)
+            await s.commit()
+        result = await s.execute("SELECT id, email, full_name, roles, is_active FROM users WHERE id = :id AND tenant_id = :tid", {"id": user_id, "tid": tenant_id})
+        row = result.fetchone()
+        return UserResponse(id=str(row[0]), email=row[1], full_name=row[2], roles=row[3], is_active=row[4])
 
 @app.post("/auth/change-password")
 async def change_password(data: ChangePasswordRequest):

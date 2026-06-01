@@ -82,6 +82,16 @@ async def live_position(vehicle_id: str):
         raise HTTPException(status_code=404, detail={"code": "NO_POSITION", "message": "No position data available"})
     return json.loads(data)
 
+@app.websocket("/ws")
+async def websocket_ping(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(json.dumps({"type": "pong", "data": data}))
+    except WebSocketDisconnect:
+        pass
+
 @app.websocket("/geo/vehicle/{vehicle_id}/stream")
 async def position_stream(websocket: WebSocket, vehicle_id: str):
     await websocket.accept()
