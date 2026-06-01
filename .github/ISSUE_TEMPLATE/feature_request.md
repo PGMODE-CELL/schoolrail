@@ -1,32 +1,38 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest an idea for SchoolRail
 title: '[Feature] '
 labels: enhancement
 assignees: ''
 ---
 
-## Is your feature request related to a problem?
+## Problem Statement
 
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+A clear and concise description of what problem this feature solves.
+Ex. I'm always frustrated when [...]
 
-## Describe the Solution
+## Proposed Solution
 
 A clear and concise description of what you want to happen.
 
-## Describe Alternatives
+## Alternative Solutions
 
-A clear and concise description of any alternative solutions or features you've considered.
+What alternatives have you considered?
 
 ## Scope
 
-- [ ] Backend (API / database)
+- [ ] Backend service (which one: _____)
 - [ ] Admin panel (Web)
 - [ ] Parent app (Mobile)
 - [ ] Driver app (Mobile)
 - [ ] Documentation
-- [ ] Infrastructure (Docker, CI/CD, deployment)
+- [ ] Infrastructure (Terraform/Helm/CI)
+- [ ] New microservice
+
+## Comparison with Competitors
+
+Does Edulog, BusPlanner, Transfinder, or Busology have this feature?
 
 ## Additional Context
 
-Add any other context or screenshots about the feature request here.
+Add any other context, mockups, or references.

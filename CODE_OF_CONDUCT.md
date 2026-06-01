@@ -1,4 +1,4 @@
-# Code of Conduct
+# Contributor Covenant Code of Conduct
 
 ## Our Pledge
 
@@ -16,31 +16,72 @@ diverse, inclusive, and healthy community.
 
 Examples of behavior that contributes to a positive environment:
 
-- Demonstrating empathy and kindness
-- Being respectful of differing opinions, viewpoints, and experiences
-- Giving and gracefully accepting constructive feedback
-- Accepting responsibility and apologizing to those affected by our mistakes
-- Focusing on what is best for the overall community
+* Demonstrating empathy and kindness toward other people
+* Being respectful of differing opinions, viewpoints, and experiences
+* Giving and gracefully accepting constructive feedback
+* Accepting responsibility and apologizing to those affected by our mistakes
+* Focusing on what is best not just for us as individuals, but for the overall community
 
 Examples of unacceptable behavior:
 
-- The use of sexualized language or imagery, and sexual attention or advances
-- Trolling, insulting/derogatory comments, and personal or political attacks
-- Public or private harassment
-- Publishing others' private information without explicit permission
-- Other conduct which could reasonably be considered inappropriate
+* The use of sexualized language or imagery, and sexual attention or advances
+* Trolling, insulting or derogatory comments, and personal or political attacks
+* Public or private harassment
+* Publishing others' private information without explicit permission
+* Other conduct which could reasonably be considered inappropriate
+
+## Enforcement Responsibilities
+
+Community leaders are responsible for clarifying and enforcing our standards.
+They have the right and responsibility to remove, edit, or reject comments,
+commits, code, wiki edits, issues, and other contributions that are not
+aligned to this Code of Conduct.
+
+## Scope
+
+This Code of Conduct applies within all community spaces, and also applies
+when an individual is officially representing the community in public spaces.
 
 ## Enforcement
 
-Project maintainers are responsible for clarifying and enforcing our standards.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project team. All complaints will be reviewed and investigated
-promptly and fairly.
+reported to the community leaders at `conduct@schoolrail.com`.
+All complaints will be reviewed and investigated promptly and fairly.
+
+## Enforcement Guidelines
+
+Community leaders will follow these Community Impact Guidelines:
+
+### 1. Correction
+
+**Impact**: Use of inappropriate language or other behavior deemed unprofessional.
+
+**Consequence**: A private, written warning with clarity about the nature
+of the violation and an explanation of why the behavior was inappropriate.
+
+### 2. Warning
+
+**Impact**: A violation through a single incident or series of actions.
+
+**Consequence**: A warning with consequences for continued behavior.
+No interaction with the involved parties for a specified period of time.
+
+### 3. Temporary Ban
+
+**Impact**: A serious violation of community standards.
+
+**Consequence**: A temporary ban from any interaction or public communication
+with the community for a specified period of time.
+
+### 4. Permanent Ban
+
+**Impact**: Demonstrating a pattern of violation, harassment, aggression,
+or disparagement of individuals or groups.
+
+**Consequence**: A permanent ban from any public interaction within the community.
 
 ## Attribution
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage],
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
 version 2.1, available at
 https://www.contributor-covenant.org/version/2/1/code_of_conduct.html.
-
-[homepage]: https://www.contributor-covenant.org

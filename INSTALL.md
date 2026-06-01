@@ -1,77 +1,200 @@
-# SchoolRail System Requirements
+# Installation Guide
 
-## Minimum Requirements
-
-### Backend (Python)
-- Python 3.10+
-- PostgreSQL 14+
-- Redis 6+ (optional for caching)
-
-### Frontend (Next.js)
-- Node.js 18+
-- npm 9+
-
-### Mobile Apps (React Native)
-- Node.js 18+
-- Expo SDK 50+
-- Android Studio / Xcode (for building)
-
-## Running with Docker (Recommended)
+## Quick Start (Docker — 5 minutes)
 
 ```bash
-# Install Docker Desktop
-# Start Docker
+# Prerequisites
+# - Docker Desktop 24+ (https://docker.com)
+# - Git
 
-# Clone and run
+git clone https://github.com/schoolrail/schoolrail.git
 cd schoolrail
-docker-compose up --build
-
-# Access:
-# - Admin: http://localhost:3000
-# - API: http://localhost:3001
-# - PostgreSQL: localhost:5432
-# - Redis: localhost:6379
+docker compose up -d
 ```
 
-## Manual Setup
+**Access everything**:
 
-### Backend
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Admin Panel | http://localhost:3000 | admin@schoolrail.com / admin123 |
+| API Gateway | http://localhost:8000 | — |
+| Kong Manager | http://localhost:8002 | — |
+| PostgreSQL | localhost:5432 | schoolrail / schoolrail |
+| Redis | localhost:6379 | — |
+| RabbitMQ | localhost:15672 | guest / guest |
+| MinIO Console | localhost:9001 | minioadmin / minioadmin |
+| Prometheus | localhost:9090 | — |
+| Grafana | localhost:3001 | admin / admin |
+| Jaeger UI | localhost:16686 | — |
+
+### Included Services
+
+| Service | Container | Port |
+|---------|-----------|------|
+| Kong API Gateway | kong | 8000 |
+| Auth Service | auth-service | 4001 |
+| Fleet Service | fleet-service | 4002 |
+| Routing Service | routing-service | 4003 |
+| Student Service | student-service | 4004 |
+| Payment Service | payment-service | 4005 |
+| Geo Service | geo-service | 4006 |
+| Tenant Service | tenant-service | 4007 |
+| Notification Service | notification-service | 4008 |
+| Celery Worker | celery-worker | — |
+| PostgreSQL 16 | postgres | 5432 |
+| PgBouncer | pgbouncer | 6432 |
+| Redis | redis | 6379 |
+| RabbitMQ | rabbitmq | 5672 |
+| MinIO (S3) | minio | 9000 |
+| OpenTelemetry Collector | otel-collector | 4317 |
+| Prometheus | prometheus | 9090 |
+| Grafana | grafana | 3001 |
+| Jaeger | jaeger | 16686 |
+| MailHog (SMTP) | mailhog | 8025 |
+
+---
+
+## Production (Kubernetes)
+
+### Prerequisites
+- K8s 1.28+ cluster
+- Helm 3.12+
+- kubectl configured
+
+### Deploy
+
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-python main.py
+cd infrastructure/helm
+
+# Base namespace + policies
+helm install schoolrail-base ./base --namespace schoolrail-production
+
+# API Gateway
+helm install api-gateway ./api-gateway --namespace schoolrail-production
+
+# Auth Service
+helm install auth-service ./auth-service --namespace schoolrail-production
+
+# Tenant Service (with PgBouncer sidecar)
+helm install tenant-service ./tenant-service --namespace schoolrail-production
 ```
 
-### Frontend
+For multi-region production: see `infrastructure/terraform/environments/production/`.
+
+### Autoscaling
+
+All services include HorizontalPodAutoscaler (CPU > 70% → scale up).  
+Workers use spot instances. Monitoring uses on-demand small instances.
+
+---
+
+## Cloud Provisioning (Terraform)
+
+```bash
+cd infrastructure/terraform/environments/production
+terraform init
+terraform plan
+terraform apply
+```
+
+Creates:
+- EKS cluster with managed node groups
+- RDS PostgreSQL 16 (multi-AZ, read replicas, encryption, 30-day backups)
+- ElastiCache Redis Cluster (sharding, multi-AZ, encryption)
+- RabbitMQ (Amazon MQ or self-hosted on EKS)
+- Vault with KMS auto-unseal
+
+---
+
+## Manual Setup (Without Docker)
+
+### Backend Services
+
+Each service is independent. Run the ones you need:
+
+```bash
+# Shared dependencies
+pip install fastapi uvicorn asyncpg sqlalchemy[asyncio] redis aio-pika prometheus-client
+
+# Auth Service
+cd backend/services/auth
+uvicorn main:app --reload --port 4001
+
+# Gateway
+cd backend/services/gateway
+uvicorn main:app --reload --port 8000
+```
+
+### Admin Panel
+
 ```bash
 cd admin
 npm install
-npm run dev
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 npm run dev
 ```
 
-### Mobile
+### Mobile Apps
+
 ```bash
-# Parent App
-cd parent-app
+cd parent-app   # or driver-app
 npm install
 npx expo start
-
-# Driver App
-cd driver-app
-npm install
-npx expo start
+# Scan QR code with Expo Go app
 ```
+
+---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
-- Database URL
-- Redis URL
-- API keys (SMS, Email, Maps, Payment)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql://schoolrail:schoolrail@localhost:5432/schoolrail` | Shared database |
+| `REDIS_URL` | `redis://localhost:6379/0` | Cache + rate limiter |
+| `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672` | Event bus |
+| `JWT_SECRET` | auto-generated | JWT signing key |
+| `JWT_ALGORITHM` | `RS256` | Key algorithm |
+| `VAULT_ADDR` | `http://localhost:8200` | Secrets management |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OpenTelemetry |
+| `S3_ENDPOINT` | `http://localhost:9000` | File storage |
+| `S3_ACCESS_KEY` | `minioadmin` | S3 access |
+| `S3_SECRET_KEY` | `minioadmin` | S3 secret |
+| `SMTP_HOST` | `localhost:1025` | Email (MailHog) |
 
-## Default Login
-- Admin: admin@schoolrail.com / admin123
-- Driver: driver1@schoolrail.com / admin123
-- Parent: parent1@schoolrail.com / admin123
+---
+
+## Mobile Apps on Physical Devices
+
+```bash
+# Parent App
+cd parent-app
+npx expo start --tunnel
+
+# Driver App
+cd driver-app
+npx expo start --tunnel
+```
+
+Scan the QR code with:
+- **iOS**: Camera app → tap notification
+- **Android**: Expo Go app → Scan QR
+
+---
+
+## Troubleshooting
+
+### Docker won't start
+- Ensure Docker Desktop is running
+- Run `docker compose down && docker compose up -d`
+- Check ports: `netstat -ano | findstr :3000`
+
+### Database connection refused
+- PostgreSQL takes ~30s to initialize on first run
+- Run: `docker compose restart postgres`
+
+### Kong returns 503
+- Microservices take a few seconds to register
+- Check: `docker compose logs kong`
+
+### Need help?
+- [GitHub Issues](https://github.com/schoolrail/schoolrail/issues)
+- [Discord Community](https://discord.gg/schoolrail)

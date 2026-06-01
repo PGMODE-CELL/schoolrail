@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve SchoolRail
 title: '[Bug] '
 labels: bug
 assignees: ''
@@ -10,27 +10,46 @@ assignees: ''
 
 A clear and concise description of what the bug is.
 
-## To Reproduce
+## Reproduction Steps
 
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '...'
-3. See error
+1. Start SchoolRail with: `docker compose up -d`
+2. Go to '...'
+3. Click on '...'
+4. See error
 
 ## Expected Behavior
 
-A clear and concise description of what you expected to happen.
-
-## Screenshots / Logs
-
-If applicable, add screenshots or error logs.
+What should have happened instead.
 
 ## Environment
 
-- OS: [e.g. Windows 10, Ubuntu 22.04]
-- Browser: [e.g. Chrome 120, Safari 17]
-- Version: [e.g. 1.0.0]
-- Database: [e.g. SQLite, PostgreSQL]
+| Field | Value |
+|-------|-------|
+| OS | [e.g. Ubuntu 22.04, macOS 14, Windows 11] |
+| Deployment | [Docker Compose / K8s / Manual] |
+| Version | [Run: `git log --oneline -1`] |
+| Browser | [e.g. Chrome 125, Safari 17] |
+| Database | [PostgreSQL 16 / SQLite] |
+
+## Logs / Screenshots
+
+```
+# Relevant logs from docker compose logs <service>
+```
+
+## Affected Component
+
+- [ ] API Gateway
+- [ ] Auth Service
+- [ ] Fleet Service
+- [ ] Routing Service
+- [ ] Student Service
+- [ ] Geo Service
+- [ ] Tenant Service
+- [ ] Admin Panel
+- [ ] Parent App
+- [ ] Driver App
+- [ ] Infrastructure (Docker/K8s/CI)
 
 ## Additional Context
 

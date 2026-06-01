@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: SchoolRail Documentation
+    url: https://github.com/schoolrail/schoolrail#readme
+    about: Read the docs before opening an issue
   - name: SchoolRail Security
     url: https://github.com/schoolrail/schoolrail/security/policy
-    about: Report a security vulnerability
+    about: Report a security vulnerability privately
+  - name: SchoolRail Community
+    url: https://discord.gg/schoolrail
+    about: Ask questions and discuss ideas on Discord

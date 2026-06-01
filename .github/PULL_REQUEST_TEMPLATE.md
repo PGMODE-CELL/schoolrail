@@ -6,19 +6,45 @@ Fixes #(issue)
 
 ## Type of Change
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would break existing functionality)
-- [ ] Documentation update
-- [ ] Refactoring / Code cleanup
+- [ ] Bug fix (non-breaking)
+- [ ] New feature (non-breaking)
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Refactoring / Performance
+- [ ] Infrastructure (Terraform/Helm/K8s/CI)
+
+## Service Impact
+
+- [ ] API Gateway
+- [ ] Auth Service
+- [ ] Fleet Service
+- [ ] Routing Service
+- [ ] Student Service
+- [ ] Geo Service
+- [ ] Tenant Service
+- [ ] Worker
+- [ ] Admin Panel
+- [ ] Parent App
+- [ ] Driver App
+- [ ] Infrastructure
 
 ## Checklist
 
-- [ ] My code follows the project's code style
-- [ ] I have tested my changes locally
-- [ ] I have updated the documentation if needed
-- [ ] No new warnings or errors are introduced
-- [ ] Backend: I have run `ruff check app/`
-- [ ] Admin: I have run `npm run lint` and `npx tsc --noEmit`
+- [ ] I have read the [contributing guide](CONTRIBUTING.md)
+- [ ] My code follows the project's style guidelines
+- [ ] I have tested my changes locally (`docker compose up -d`)
+- [ ] I have updated documentation (if needed)
+- [ ] No new warnings or errors introduced
+- [ ] Backend: `ruff check` passes
+- [ ] Admin: `npx tsc --noEmit` passes
+- [ ] I have added tests (if applicable)
+
+## Testing
+
+```bash
+# Commands to verify the change
+```
 
 ## Screenshots (if applicable)
+
+## Additional Context

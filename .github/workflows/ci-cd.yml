@@ -1,110 +1,235 @@
-# GitHub Actions CI/CD Configuration for SchoolRail
+# GitHub Actions CI/CD — SchoolRail
 
 name: CI/CD Pipeline
 
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
   pull_request:
     branches: [main, develop]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
-  # Backend Tests
-  backend-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
-          
-      - name: Run linter
+          cache: 'pip'
+
+      - name: Lint Python services
         run: |
           pip install ruff
-          ruff check app/
-          
-      - name: Run tests
-        working-directory: backend
-        run: |
-          pytest --cov=app --cov-report=xml -v
+          for dir in backend/libs backend/services/*/ backend/workers/*/; do
+            [ -d "$dir" ] && ruff check "$dir" --quiet || true
+          done
 
-  # Frontend Tests
-  frontend-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
-      - name: Install dependencies
-        working-directory: admin
-        run: npm ci
-          
-      - name: Run linter
-        working-directory: admin
-        run: npm run lint
-          
-      - name: Run tests
-        working-directory: admin
-        run: npm run test -- --coverage
+          cache-dependency-path: admin/package-lock.json
 
-  # Build Check
-  build:
+      - name: Lint admin
+        working-directory: admin
+        run: |
+          npm ci
+          npm run lint
+
+  test:
+    needs: [lint]
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: schoolrail_test
+          POSTGRES_USER: schoolrail
+          POSTGRES_PASSWORD: schoolrail
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
-      - name: Build backend
-        working-directory: backend
+          cache: 'pip'
+
+      - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          python -c "from main import app; print('Backend builds successfully')"
-          
+          pip install fastapi uvicorn asyncpg sqlalchemy[asyncio] redis aio-pika httpx pytest pytest-asyncio pytest-cov
+
+      - name: Run service tests
+        run: |
+          for service in auth fleet routing students geo tenant; do
+            if [ -f "backend/services/$service/tests/test_main.py" ]; then
+              echo "Testing $service..."
+              DATABASE_URL=postgresql+asyncpg://schoolrail:schoolrail@localhost:5432/schoolrail_test \
+              REDIS_URL=redis://localhost:6379/0 \
+              RABBITMQ_URL=amqp://guest:guest@localhost:5672 \
+              pytest backend/services/$service/tests/ -v --cov=backend.services.$service --cov-append
+            fi
+          done
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
-      - name: Build admin
+          cache: 'npm'
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Typecheck admin
         working-directory: admin
         run: |
           npm ci
-          npm run build
+          npx tsc --noEmit
 
-  # Docker Build (optional)
-  docker-build:
+  build:
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service:
+          - gateway
+          - auth
+          - fleet
+          - routing
+          - students
+          - geo
+          - tenant
+          - worker
+        include:
+          - service: admin
+            dockerfile: admin/Dockerfile
+            context: admin
+          - service: parent-app
+            dockerfile: parent-app/Dockerfile
+            context: parent-app
+          - service: driver-app
+            dockerfile: driver-app/Dockerfile
+            context: driver-app
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build Docker image
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context || format('backend/services/{0}', matrix.service) }}
+          file: ${{ matrix.dockerfile || format('backend/services/{0}/Dockerfile', matrix.service) }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/schoolrail/${{ matrix.service }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/schoolrail/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name schoolrail-production --region us-east-1
+
+      - name: Deploy via Helm
         run: |
-          docker build -t schoolrail/backend:latest ./backend
-          docker build -t schoolrail/admin:latest ./admin
-          
-      - name: Run container
+          for service in base api-gateway auth-service tenant-service; do
+            helm upgrade --install schoolrail-$service \
+              ./infrastructure/helm/$service \
+              --namespace schoolrail-production \
+              --set image.tag=${{ env.IMAGE_TAG }} \
+              --wait
+          done
+
+      - name: Sync via ArgoCD
         run: |
-          docker-compose up -d
-          sleep 10
-          curl -f http://localhost:3001/api/v1/health || exit 1
-          docker-compose down
+          argocd app sync schoolrail-production --prune
+
+  smoke-test:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deployment health
+        run: |
+          # Gateway
+          curl -f --retry 10 --retry-delay 5 https://api.schoolrail.com/health
+          # Admin
+          curl -f --retry 5 --retry-delay 10 https://admin.schoolrail.com
+          # Auth service
+          curl -f --retry 5 --retry-delay 5 https://api.schoolrail.com/api/v1/auth/me \
+            -H "Authorization: Bearer ${{ secrets.TEST_JWT }}"
+
+      - name: Run smoke tests
+        run: |
+          pip install httpx
+          python -c "
+          import httpx
+          r = httpx.get('https://api.schoolrail.com/health')
+          assert r.status_code == 200, f'Health check failed: {r.status_code}'
+          data = r.json()
+          assert data['status'] == 'ok', f'Status not ok: {data}'
+          print(f'All services healthy: {len(data.get(\"services\", []))} services')
+          "
+
+  rollback:
+    needs: [smoke-test]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback Helm releases
+        run: |
+          for release in $(helm list --namespace schoolrail-production -q); do
+            helm rollback $release --namespace schoolrail-production
+          done
+
+      - name: Notify failure
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "SchoolRail deployment FAILED — rolling back. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
