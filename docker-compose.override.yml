@@ -1,0 +1,54 @@
+# Development override — enables hot reload via volume mounts
+# Usage: docker compose up -d  (automatically picks up this file)
+
+services:
+  gateway:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.gateway.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+  auth-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.auth.main:app --host 0.0.0.0 --port 8001 --reload --log-level debug
+
+  fleet-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.fleet.main:app --host 0.0.0.0 --port 8002 --reload --log-level debug
+
+  routing-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.routing.main:app --host 0.0.0.0 --port 8003 --reload --log-level debug
+
+  student-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.students.main:app --host 0.0.0.0 --port 8004 --reload --log-level debug
+
+  geo-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.geo.main:app --host 0.0.0.0 --port 8005 --reload --log-level debug
+
+  tenant-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.tenant.main:app --host 0.0.0.0 --port 8006 --reload --log-level debug
+
+  payment-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.payments.main:app --host 0.0.0.0 --port 8007 --reload --log-level debug
+
+  notification-service:
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.services.notifications.main:app --host 0.0.0.0 --port 8008 --reload --log-level debug
+
+  admin:
+    volumes:
+      - ./admin:/app
+      - /app/node_modules
+      - /app/.next

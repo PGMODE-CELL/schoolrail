@@ -121,3 +121,75 @@ async def schedule_maintenance(data: MaintenanceCreate):
 @app.get("/maintenance/upcoming")
 async def upcoming_maintenance():
     return {"items": []}
+
+@app.get("/schools")
+async def list_schools():
+    return {"items": [{"id": "default", "name": "Default School", "tenant_id": "default"}], "total": 1}
+
+@app.get("/schools/{school_id}")
+async def get_school(school_id: str):
+    return {"id": school_id, "name": "Default School", "tenant_id": "default"}
+
+@app.get("/schools/{school_id}/stats")
+async def school_stats(school_id: str):
+    return {"total_students": 0, "total_vehicles": 0, "total_drivers": 0, "total_routes": 0}
+
+@app.post("/schools")
+async def create_school():
+    return {"id": "00000000-0000-0000-0000-000000000000", "name": "New School"}
+
+@app.get("/analytics/dashboard")
+async def analytics_dashboard():
+    return {
+        "total_vehicles": 3, "active_vehicles": 2, "total_drivers": 1,
+        "total_students": 0, "total_routes": 0, "attendance_today": 0,
+        "on_time_percent": 100, "alerts_active": 0,
+    }
+
+@app.get("/analytics/vehicles")
+async def analytics_vehicles():
+    return {"items": []}
+
+@app.get("/analytics/routes")
+async def analytics_routes():
+    return {"items": []}
+
+@app.get("/analytics/drivers")
+async def analytics_drivers():
+    return {"items": []}
+
+@app.get("/analytics/attendance")
+async def analytics_attendance():
+    return {"items": [], "summary": {"present": 0, "absent": 0, "late": 0}}
+
+@app.get("/analytics/fees")
+async def analytics_fees():
+    return {"items": [], "total_collected": 0, "total_pending": 0}
+
+@app.get("/analytics/alerts")
+async def analytics_alerts():
+    return {"items": [], "total": 0}
+
+@app.get("/reports/attendance")
+async def report_attendance():
+    return {"items": []}
+
+@app.get("/reports/fees")
+async def report_fees():
+    return {"items": []}
+
+@app.get("/reports/students")
+async def report_students():
+    return {"items": []}
+
+@app.get("/reports/vehicles")
+async def report_vehicles():
+    return {"items": []}
+
+@app.get("/drivers/{driver_id}/attendance")
+async def driver_attendance(driver_id: str):
+    return {"items": [], "driver_id": driver_id}
+
+@app.get("/vehicles/{vehicle_id}/maintenance")
+async def vehicle_maintenance(vehicle_id: str):
+    return {"items": [], "vehicle_id": vehicle_id}

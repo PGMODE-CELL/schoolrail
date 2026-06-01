@@ -20,18 +20,24 @@ case $SERVICE in
   students)
     MODULE="backend.services.students.main:app"
     ;;
-  geo)
+   geo)
     MODULE="backend.services.geo.main:app"
     ;;
   tenant)
     MODULE="backend.services.tenant.main:app"
+    ;;
+  payments)
+    MODULE="backend.services.payments.main:app"
+    ;;
+  notifications)
+    MODULE="backend.services.notifications.main:app"
     ;;
   worker)
     exec celery -A backend.workers.celery_app worker -Q "${WORKER_QUEUES:-optimization,reports,notifications,sync}" -l info -c 4
     ;;
   *)
     echo "Unknown service: $SERVICE"
-    echo "Valid: gateway, auth, fleet, routing, students, geo, tenant, worker"
+    echo "Valid: gateway, auth, fleet, routing, students, geo, tenant, payments, notifications, worker"
     exit 1
     ;;
 esac

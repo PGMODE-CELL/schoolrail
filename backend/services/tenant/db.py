@@ -32,7 +32,7 @@ async def run_tenant_migrations(tenant_id: str) -> None:
     try:
         await conn.execute("CREATE SCHEMA IF NOT EXISTS schoolrail")
         await conn.execute("SET search_path TO schoolrail")
-        with open("backend/services/tenant/schema.sql") as f:
+        with open("services/tenant/schema.sql") as f:
             sql = f.read()
         await conn.execute(sql)
     finally:

@@ -121,3 +121,23 @@ async def trip_stop_arrive(data: TripStopEvent):
 @app.post("/trip-stops/depart")
 async def trip_stop_depart(data: TripStopEvent):
     return {"status": "departed", "trip_id": data.trip_id, "stop_id": data.stop_id}
+
+@app.get("/trips")
+async def list_trips():
+    return {"items": [], "total": 0}
+
+@app.post("/trips")
+async def create_trip():
+    return {"id": "00000000-0000-0000-0000-000000000000", "status": "scheduled"}
+
+@app.get("/trips/{trip_id}")
+async def get_trip(trip_id: str):
+    return {"id": trip_id, "status": "scheduled"}
+
+@app.post("/trips/{trip_id}/start")
+async def start_trip(trip_id: str):
+    return {"id": trip_id, "status": "in_progress"}
+
+@app.post("/trips/{trip_id}/complete")
+async def complete_trip(trip_id: str):
+    return {"id": trip_id, "status": "completed"}

@@ -196,6 +196,24 @@ services:
       postgres:
         condition: service_healthy
 
+  payment-service:
+    <<: *backend-base
+    environment:
+      SERVICE_NAME: payments
+      SERVICE_PORT: "8007"
+      OTEL_SERVICE_NAME: schoolrail-payments
+    ports:
+      - "8007:8007"
+
+  notification-service:
+    <<: *backend-base
+    environment:
+      SERVICE_NAME: notifications
+      SERVICE_PORT: "8008"
+      OTEL_SERVICE_NAME: schoolrail-notifications
+    ports:
+      - "8008:8008"
+
   celery-worker:
     <<: *backend-base
     environment:

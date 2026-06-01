@@ -118,3 +118,19 @@ async def check_geofence(data: GeofenceCheck):
 @app.get("/geo/proximity-alerts")
 async def proximity_alerts():
     return {"items": []}
+
+@app.post("/gps/location")
+async def gps_location():
+    return {"status": "ok"}
+
+@app.get("/gps/active")
+async def gps_active():
+    return {"items": []}
+
+@app.get("/gps/vehicle/{vehicle_id}")
+async def gps_vehicle(vehicle_id: str):
+    return {"vehicle_id": vehicle_id, "latitude": 0, "longitude": 0, "speed": 0}
+
+@app.get("/gps/vehicle/{vehicle_id}/history")
+async def gps_vehicle_history(vehicle_id: str):
+    return {"items": [], "vehicle_id": vehicle_id}

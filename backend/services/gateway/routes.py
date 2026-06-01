@@ -12,14 +12,27 @@ class RouteConfig(TypedDict):
     scopes: list[str]
 
 ROUTE_TABLE: dict[str, RouteConfig] = {
-    "/api/v1/auth": {"target": "http://auth-service:4001", "rate_limit": 100, "auth_required": False, "scopes": []},
-    "/api/v1/fleet": {"target": "http://fleet-service:4002", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "driver"]},
-    "/api/v1/routes": {"target": "http://routing-service:4003", "rate_limit": 60, "auth_required": True, "scopes": ["admin"]},
-    "/api/v1/students": {"target": "http://student-service:4004", "rate_limit": 80, "auth_required": True, "scopes": ["admin", "teacher"]},
-    "/api/v1/payments": {"target": "http://payment-service:4005", "rate_limit": 40, "auth_required": True, "scopes": ["admin", "finance"]},
-    "/api/v1/geo": {"target": "http://geo-service:4006", "rate_limit": 120, "auth_required": True, "scopes": ["admin", "driver"]},
-    "/api/v1/tenants": {"target": "http://tenant-service:4007", "rate_limit": 20, "auth_required": True, "scopes": ["superadmin"]},
-    "/api/v1/notifications": {"target": "http://notification-service:4008", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "teacher", "driver"]},
+    "/api/v1/auth": {"target": "http://auth-service:8001", "rate_limit": 100, "auth_required": False, "scopes": []},
+    "/api/v1/vehicles": {"target": "http://fleet-service:8002", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/drivers": {"target": "http://fleet-service:8002", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/maintenance": {"target": "http://fleet-service:8002", "rate_limit": 60, "auth_required": True, "scopes": ["admin"]},
+    "/api/v1/fleet": {"target": "http://fleet-service:8002", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/routes": {"target": "http://routing-service:8003", "rate_limit": 60, "auth_required": True, "scopes": ["admin"]},
+    "/api/v1/stops": {"target": "http://routing-service:8003", "rate_limit": 60, "auth_required": True, "scopes": ["admin"]},
+    "/api/v1/trips": {"target": "http://routing-service:8003", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/students": {"target": "http://student-service:8004", "rate_limit": 80, "auth_required": True, "scopes": ["admin", "teacher"]},
+    "/api/v1/attendance": {"target": "http://student-service:8004", "rate_limit": 80, "auth_required": True, "scopes": ["admin", "teacher"]},
+    "/api/v1/ridership": {"target": "http://student-service:8004", "rate_limit": 80, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/gps": {"target": "http://geo-service:8005", "rate_limit": 120, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/geo": {"target": "http://geo-service:8005", "rate_limit": 120, "auth_required": True, "scopes": ["admin", "driver"]},
+    "/api/v1/tenants": {"target": "http://tenant-service:8006", "rate_limit": 20, "auth_required": True, "scopes": ["superadmin"]},
+    "/api/v1/fees": {"target": "http://payment-service:8007", "rate_limit": 40, "auth_required": True, "scopes": ["admin", "finance"]},
+    "/api/v1/payments": {"target": "http://payment-service:8007", "rate_limit": 40, "auth_required": True, "scopes": ["admin", "finance"]},
+    "/api/v1/alerts": {"target": "http://notification-service:8008", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "teacher", "driver"]},
+    "/api/v1/notifications": {"target": "http://notification-service:8008", "rate_limit": 60, "auth_required": True, "scopes": ["admin", "teacher", "driver"]},
+    "/api/v1/schools": {"target": "http://fleet-service:8002", "rate_limit": 60, "auth_required": True, "scopes": ["admin"]},
+    "/api/v1/analytics": {"target": "http://fleet-service:8002", "rate_limit": 30, "auth_required": True, "scopes": ["admin"]},
+    "/api/v1/reports": {"target": "http://fleet-service:8002", "rate_limit": 30, "auth_required": True, "scopes": ["admin"]},
 }
 
 def _match_route(path: str) -> tuple[str, RouteConfig]:
@@ -33,7 +46,8 @@ async def proxy_request(method: str, target_url: str, request: Request) -> JSONR
     body = await request.body()
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.request(method, target_url, headers=headers, content=body)
-    return JSONResponse(content=resp.json(), status_code=resp.status_code, headers=dict(resp.headers))
+    content = resp.json() if resp.content else {}
+    return JSONResponse(content=content, status_code=resp.status_code, headers=dict(resp.headers))
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 async def gateway_proxy(path: str, request: Request):

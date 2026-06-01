@@ -1,10 +1,11 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+    curl openssl \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /app/backend
+WORKDIR /app/backend
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -17,9 +18,7 @@ RUN mkdir -p /etc/keys && \
 
 ENV PYTHONPATH=/app
 
+RUN chmod +x scripts/run.sh
 EXPOSE 8000
 
-COPY scripts/run.sh /run.sh
-RUN chmod +x /run.sh
-
-CMD ["/run.sh"]
+CMD ["scripts/run.sh"]
