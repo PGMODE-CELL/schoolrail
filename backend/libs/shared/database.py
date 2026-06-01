@@ -66,9 +66,11 @@ class TenantSessionFactory:
         async with session_maker() as session:
             yield session
 
-async def run_migrations(shared_engine_url: str, tenant_db_urls: list[str]) -> None:
-    for url in [shared_engine_url] + tenant_db_urls:
-        conn = await asyncpg.connect(url)
+async def run_migrations(shared_engine_url: str, tenant_db_urls: list[str] | None = None) -> None:
+    urls = [shared_engine_url] + (tenant_db_urls or [])
+    for url in urls:
+        sync_url = url.replace("+asyncpg", "").replace("+psycopg", "")
+        conn = await asyncpg.connect(sync_url)
         try:
             await conn.execute("CREATE SCHEMA IF NOT EXISTS schoolrail")
         finally:
