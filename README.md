@@ -137,7 +137,7 @@ docker compose up -d
 # Open the admin panel
 open http://localhost:3000
 
-# Login: admin@schoolrail.com / admin123
+# Register an admin account at http://localhost:3000
 ```
 
 That's it. Admin panel, API gateway, all microservices, database, and monitoring are running.

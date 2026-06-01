@@ -24,8 +24,7 @@ Authorization: Bearer <token>
 
 **Login Request:**
 ```json
-{ "email": "admin@schoolrail.com", "password": "admin123" }
-```
+{ "email": "admin@your-school.edu", "password": "your-password" }
 
 **Login Response:**
 ```json
@@ -36,11 +35,12 @@ Authorization: Bearer <token>
   "expires_in": 900,
   "user": {
     "id": "uuid",
-    "email": "admin@schoolrail.com",
-    "full_name": "Admin User",
+    "email": "admin@your-school.edu",
+    "full_name": "Your Name",
     "roles": ["admin"],
     "tenant_id": "uuid"
   }
+}
 }
 ```
 

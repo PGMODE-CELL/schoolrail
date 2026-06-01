@@ -5,12 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, Bus } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 
-const MOCK_USERS = [
-  { email: 'admin@schoolrail.com', password: 'admin123', id: 'usr_001', name: 'Admin User', role: 'admin', redirect: '/dashboard' },
-  { email: 'driver1@schoolrail.com', password: 'admin123', id: 'drv_001', name: 'John Driver', role: 'driver', redirect: '/driver' },
-  { email: 'parent1@schoolrail.com', password: 'admin123', id: 'par_001', name: 'Parent User', role: 'parent', redirect: '/parent' },
-];
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -41,17 +35,7 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch {
-      // Fallback to mock credentials when backend is unavailable
-      const mockUser = MOCK_USERS.find(u => u.email === email && u.password === password);
-      if (mockUser) {
-        localStorage.setItem('user', JSON.stringify({
-          id: mockUser.id, name: mockUser.name, email: mockUser.email, role: mockUser.role
-        }));
-        localStorage.setItem('token', 'mock_token_123');
-        router.push(mockUser.redirect);
-      } else {
-        setError('Invalid email or password. Try admin@schoolrail.com / admin123');
-      }
+      setError('Invalid email or password. Please contact your school administrator.');
     }
 
     setIsLoading(false);
@@ -97,7 +81,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@schoolrail.com"
+                  placeholder="you@school.edu"
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />
@@ -158,24 +142,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <p className="text-sm text-slate-500 text-center mb-3">Demo Credentials</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">Admin</span>
-                <span className="font-mono text-slate-800">admin@schoolrail.com / admin123</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">Driver</span>
-                <span className="font-mono text-slate-800">driver1@schoolrail.com / admin123</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">Parent</span>
-                <span className="font-mono text-slate-800">parent1@schoolrail.com / admin123</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

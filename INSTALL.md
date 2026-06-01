@@ -14,18 +14,17 @@ docker compose up -d
 
 **Access everything**:
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Admin Panel | http://localhost:3000 | admin@schoolrail.com / admin123 |
-| API Gateway | http://localhost:8000 | — |
-| Kong Manager | http://localhost:8002 | — |
-| PostgreSQL | localhost:5432 | schoolrail / schoolrail |
-| Redis | localhost:6379 | — |
-| RabbitMQ | localhost:15672 | guest / guest |
-| MinIO Console | localhost:9001 | minioadmin / minioadmin |
-| Prometheus | localhost:9090 | — |
-| Grafana | localhost:3001 | admin / admin |
-| Jaeger UI | localhost:16686 | — |
+| Service | URL |
+|---------|-----|
+| Admin Panel | http://localhost:3000 |
+| API Gateway | http://localhost:8000 |
+| PostgreSQL | localhost:5432 |
+| Redis | localhost:6379 |
+| RabbitMQ | localhost:15672 |
+| MinIO Console | localhost:9001 |
+| Prometheus | localhost:9090 |
+| Grafana | localhost:3001 |
+| Jaeger UI | localhost:16686 |
 
 ### Included Services
 

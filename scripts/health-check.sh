@@ -40,13 +40,11 @@ if [ "$ALL_OK" = true ]; then
     echo "Access:"
     echo "  Admin Panel: http://localhost:3000"
     echo "  API Gateway: http://localhost:8000"
-    echo "  Grafana:     http://localhost:3001 (admin/admin)"
+    echo "  Grafana:     http://localhost:3001"
     echo "  Jaeger:      http://localhost:16686"
-    echo "  MinIO:       http://localhost:9001 (schoolrail/password123)"
-    echo "  RabbitMQ:    http://localhost:15672 (schoolrail/password)"
+    echo "  MinIO:       http://localhost:9001"
+    echo "  RabbitMQ:    http://localhost:15672"
     echo "  MailHog:     http://localhost:8025"
-    echo ""
-    echo "Login: admin@schoolrail.com / admin123"
 else
     echo "❌ Some services are unhealthy"
     exit 1

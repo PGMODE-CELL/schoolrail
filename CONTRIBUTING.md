@@ -20,7 +20,7 @@ docker compose up -d
 # API Gateway: http://localhost:8000
 # Grafana: http://localhost:3001
 
-# Login: admin@schoolrail.com / admin123
+# Register an admin account at http://localhost:3000
 ```
 
 ---
