@@ -9,7 +9,7 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/schoolrail/schoolrail.git
+              repoURL: https://github.com/PGMODE-CELL/schoolrail.git
               revision: HEAD
               directories:
                 - path: infrastructure/helm/*
@@ -36,7 +36,7 @@ spec:
         server: "{{.cluster}}"
         namespace: "{{.namespace}}"
       source:
-        repoURL: https://github.com/schoolrail/schoolrail.git
+        repoURL: https://github.com/PGMODE-CELL/schoolrail.git
         targetRevision: HEAD
         path: "{{.path.path}}"
         helm:
@@ -82,7 +82,7 @@ metadata:
 spec:
   project: schoolrail
   source:
-    repoURL: https://github.com/schoolrail/schoolrail.git
+    repoURL: https://github.com/PGMODE-CELL/schoolrail.git
     targetRevision: HEAD
     path: infrastructure/helm/base
     helm:

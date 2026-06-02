@@ -7,7 +7,7 @@
 # - Docker Desktop 24+ (https://docker.com)
 # - Git
 
-git clone https://github.com/schoolrail/schoolrail.git
+git clone https://github.com/PGMODE-CELL/schoolrail.git
 cd schoolrail
 docker compose up -d
 ```
@@ -195,5 +195,5 @@ Scan the QR code with:
 - Run: `docker compose logs gateway`
 
 ### Need help?
-- [GitHub Issues](https://github.com/schoolrail/schoolrail/issues)
+- [GitHub Issues](https://github.com/PGMODE-CELL/schoolrail/issues)
 - [Discord Community](https://discord.gg/schoolrail)

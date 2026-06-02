@@ -1,6 +1,5 @@
 # SchoolRail — Open Source School Transportation Platform
 
-[![CI/CD Pipeline](https://github.com/schoolrail/schoolrail/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/schoolrail/schoolrail/actions/workflows/ci-cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Node 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org/)
@@ -10,8 +9,6 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://docker.com)
 [![Kubernetes](https://img.shields.io/badge/K8s-Helm-326CE5.svg)](https://helm.sh)
 [![Terraform](https://img.shields.io/badge/Terraform-1.7+-844FBA.svg)](https://terraform.io)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2.svg)](https://discord.gg/schoolrail)
-[![Twitter](https://img.shields.io/twitter/follow/schoolrail?style=social)](https://twitter.com/schoolrail)
 
 **The most complete, production-ready, open-source school transportation management system.**  
 Built to scale from a single school to millions of institutions — for free.
@@ -128,7 +125,7 @@ Connection pooling via PgBouncer, cached lookups via Redis, zero cross-tenant da
 ```bash
 # Prerequisites: Docker Desktop + Git
 
-git clone https://github.com/schoolrail/schoolrail.git
+git clone https://github.com/PGMODE-CELL/schoolrail.git
 cd schoolrail
 
 # Start all services
@@ -239,9 +236,7 @@ All tiers use the same codebase. Upgrade by adding infrastructure.
 
 ## Community
 
-- 🌟 [Star on GitHub](https://github.com/schoolrail/schoolrail)
-- 🐦 [Follow on Twitter](https://twitter.com/schoolrail)
-- 💬 [Join Discord](https://discord.gg/schoolrail)
+- 🌟 [Star on GitHub](https://github.com/PGMODE-CELL/schoolrail)
 - 📧 [Security issues](SECURITY.md)
 - 💖 [Sponsor on GitHub](.github/FUNDING.yml)
 
@@ -262,10 +257,10 @@ No restrictions, no hidden fees, no telemetry.
 </p>
 
 <p align="center">
-  <a href="https://github.com/schoolrail/schoolrail/stargazers">
+  <a href="https://github.com/PGMODE-CELL/schoolrail/stargazers">
     <img src="https://img.shields.io/github/stars/schoolrail/schoolrail?style=social" alt="Stars">
   </a>
-  <a href="https://github.com/schoolrail/schoolrail/network/members">
+  <a href="https://github.com/PGMODE-CELL/schoolrail/network/members">
     <img src="https://img.shields.io/github/forks/schoolrail/schoolrail?style=social" alt="Forks">
   </a>
 </p>

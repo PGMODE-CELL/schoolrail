@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: SchoolRail Documentation
-    url: https://github.com/schoolrail/schoolrail#readme
+    url: https://github.com/PGMODE-CELL/schoolrail#readme
     about: Read the docs before opening an issue
   - name: SchoolRail Security
-    url: https://github.com/schoolrail/schoolrail/security/policy
+    url: https://github.com/PGMODE-CELL/schoolrail/security/policy
     about: Report a security vulnerability privately
   - name: SchoolRail Community
     url: https://discord.gg/schoolrail

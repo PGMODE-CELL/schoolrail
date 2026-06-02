@@ -25,21 +25,27 @@ const navItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [user] = useState(() => {
-    try {
-      const u = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-      return { name: u.full_name || u.name || 'User', role: u.roles?.[0] || u.role || 'User', email: u.email || '' };
-    } catch { return { name: 'User', role: 'User', email: '' }; }
-  });
+  const [user, setUser] = useState({ name: 'User', role: 'User', email: '' });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [realtimeEvents, setRealtimeEvents] = useState<any[]>([]);
   const pathname = usePathname();
 
-  const wsUrl = typeof window !== 'undefined'
-    ? `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws'}?token=${localStorage.getItem('token') || ''}`
-    : (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws');
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setUser({ name: u.full_name || u.name || 'User', role: u.roles?.[0] || u.role || 'User', email: u.email || '' });
+    } catch { /* keep default */ }
+  }, []);
+
+  const [wsUrl, setWsUrl] = useState(`${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws'}`);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token') || '';
+    setWsUrl(`${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8005/ws'}?token=${token}`);
+  }, []);
+
   const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl, { reconnect: true });
 
   useEffect(() => {

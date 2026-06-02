@@ -8,14 +8,9 @@ keywords:
   - api-gateway
   - kong
   - schoolrail
-home: https://schoolrail.app
+home: https://github.com/PGMODE-CELL/schoolrail
 sources:
-  - https://github.com/schoolrail/schoolrail
-dependencies:
-  - name: kong
-    version: 2.40.0
-    repository: https://charts.konghq.com
-    condition: kong.enabled
+  - https://github.com/PGMODE-CELL/schoolrail
 maintainers:
   - name: SchoolRail Team
-    email: devops@schoolrail.app
+    email: devops@example.com

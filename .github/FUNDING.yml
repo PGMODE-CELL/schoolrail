@@ -1,10 +1,10 @@
 # These are supported funding model platforms
 
-github: [schoolrail]
-patreon: schoolrail
-open_collective: schoolrail
-ko_fi: schoolrail
-liberapay: schoolrail
-custom:
-  - https://www.buymeacoffee.com/schoolrail
-  - https://paypal.me/schoolrail
+# These are supported funding model platforms
+# Replace with your own usernames to accept donations
+github: []
+patreon: 
+open_collective: 
+ko_fi: 
+liberapay: 
+custom: []

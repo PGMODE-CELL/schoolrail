@@ -8,9 +8,9 @@ keywords:
   - tenant
   - multi-tenant
   - schoolrail
-home: https://schoolrail.app
+home: https://github.com/PGMODE-CELL/schoolrail
 sources:
-  - https://github.com/schoolrail/schoolrail
+  - https://github.com/PGMODE-CELL/schoolrail
 maintainers:
   - name: SchoolRail Team
-    email: devops@schoolrail.app
+    email: devops@example.com
