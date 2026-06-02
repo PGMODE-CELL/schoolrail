@@ -104,7 +104,7 @@
 ## Tenant Resolution Flow
 
 1. Request hits API Gateway
-2. Gateway extracts `X-Tenant-ID` header or subdomain (schoolname.schoolrail.com)
+2. Gateway extracts `X-Tenant-ID` header or subdomain (schoolname.example.com)
 3. Gateway calls Tenant Service to validate + get DB connection string
 4. Request forwarded to target service with tenant context injected
 5. Service uses tenant-specific DB pool from PgBouncer

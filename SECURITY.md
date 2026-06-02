@@ -21,7 +21,7 @@ To report, include:
 - Proof-of-concept (if possible)
 - Impact assessment
 
-Email: `security@schoolrail.com`
+Email: `security@example.com`
 
 ## Our Security Architecture
 

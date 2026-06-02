@@ -258,9 +258,9 @@ No restrictions, no hidden fees, no telemetry.
 
 <p align="center">
   <a href="https://github.com/PGMODE-CELL/schoolrail/stargazers">
-    <img src="https://img.shields.io/github/stars/schoolrail/schoolrail?style=social" alt="Stars">
+    <img src="https://img.shields.io/github/stars/PGMODE-CELL/schoolrail?style=social" alt="Stars">
   </a>
   <a href="https://github.com/PGMODE-CELL/schoolrail/network/members">
-    <img src="https://img.shields.io/github/forks/schoolrail/schoolrail?style=social" alt="Forks">
+    <img src="https://img.shields.io/github/forks/PGMODE-CELL/schoolrail?style=social" alt="Forks">
   </a>
 </p>

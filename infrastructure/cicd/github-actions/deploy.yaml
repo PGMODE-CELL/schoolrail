@@ -247,7 +247,7 @@ jobs:
         id: smoke-tests
         continue-on-error: true
         env:
-          API_BASE_URL: ${{ github.ref_name == 'main' && 'https://api.schoolrail.app' || 'https://api.staging.schoolrail.app' }}
+          API_BASE_URL: ${{ github.ref_name == 'main' && 'https://api.your-domain.com' || 'https://api.staging.your-domain.com' }}
           SMOKE_TEST_TOKEN: ${{ secrets.SMOKE_TEST_TOKEN }}
         run: |
           python -m pytest backend/tests/test_api.py -v --no-header -k "smoke" -x || \

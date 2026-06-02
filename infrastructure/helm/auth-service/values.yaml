@@ -18,8 +18,8 @@ redis:
 config:
   appName: SchoolRail Auth Service
   debug: false
-  allowedHosts: "api.schoolrail.app,schoolrail.app"
-  corsOrigins: "https://admin.schoolrail.app,https://schoolrail.app"
+  allowedHosts: "api.your-domain.com,your-domain.com"
+  corsOrigins: "https://admin.your-domain.com,https://your-domain.com"
   accessTokenExpireMinutes: 1440
   refreshTokenExpireMinutes: 10080
   mfaTokenExpireMinutes: 5
@@ -88,14 +88,13 @@ service:
 
 ingress:
   enabled: true
-  className: kong
+  className: nginx
   annotations:
-    konghq.com/strip-path: "true"
-    konghq.com/plugins: auth-rate-limit
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
   hosts:
-    - host: api.schoolrail.app
+    - host: api.your-domain.com
       paths:
-        - /api/v1/auth
+        - /api/v1/auth(/|$)(.*)
 
 probes:
   liveness:
